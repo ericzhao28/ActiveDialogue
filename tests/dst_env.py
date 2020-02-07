@@ -61,7 +61,7 @@ def main():
         raw_obs, obs_dist = env.observe()
         ended = env.step()
 
-    env.eval()
+    env.eval(0.2)
 
 
 if __name__ == "__main__":

@@ -82,7 +82,7 @@ def main():
             model.optimizer.step()
 
     logging.info('Running dev evaluation')
-    dev_out = model.run_eval(datasets["test"], args)
+    dev_out = model.run_eval(datasets["test"], args, 0.2)
     pprint(dev_out)
 
 

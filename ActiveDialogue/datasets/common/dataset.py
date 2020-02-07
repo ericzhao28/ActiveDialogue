@@ -52,12 +52,12 @@ class Dataset:
             sample_mode: `singlepass` or `uniform`. Should idxs be sampled
                          with or without replacement?
         Returns:
-            all_idxs: Turn indices for training.
-            all_seed_idxs: Non-repeating turn indices reserved for seeding.
+            all_idxs: Turn idxs for training.
+            all_seed_idxs: Non-repeating turn idxs reserved for seeding.
             turn_idx_cap: 1 + maximum turn idx (number of turns from all
                           dialogues).
         """
-        # List of turn indices divided by dialogue index (first seed_size
+        # List of turn idxs divided by dialogue index (first seed_size
         # are reserved for seeding).
         seed_idxs = np.where(self.turns_dlg < seed_size)[0]
         orig_nonseed_idxs = np.where(self.turns_dlg >= seed_size)[0]
@@ -74,7 +74,7 @@ class Dataset:
         else:
             raise ValueError("ClassificationEnv: Invalid sample mode")
 
-        # Combine seed and training indices (first len(seed_idxs) are
+        # Combine seed and training idxs (first len(seed_idxs) are
         # seeded).
         all_idxs = np.concatenate((seed_idxs, nonseed_idxs))
 
@@ -115,7 +115,7 @@ class Dataset:
         """Grab a batch of dialogue turns and labels
         Args:
             batch_size: batch size.
-            idxs: specify which turn indices are to be included. By default,
+            idxs: specify which turn idxs are to be included. By default,
                   all turns are included.
             labels: provide competing labels (1:1 with self.turns_labels)
             shuffle: should the ordering of turns be shuffled?
@@ -159,13 +159,17 @@ class Dataset:
             slot: values[idxs] for slot, values in self.turns_labels.items()
         }
 
-    def evaluate_preds(self, preds):
+    def evaluate_preds(self, preds, proportion):
         request = []
         inform = []
         joint_goal = []
         fix = {'centre': 'center', 'areas': 'area', 'phone number': 'number'}
         i = 0
-        for d in self.dialogues:
+        dialogues = self.dialogues
+        if proportion:
+            idxs = np.random.permutation(np.arange(len(dialogues)))[:int(proportion * float(len(dialogues)))]
+            dialogues = dialogues[idxs]
+        for d in dialogues:
             pred_state = {}
             for t in d.turns:
                 gold_request = set([

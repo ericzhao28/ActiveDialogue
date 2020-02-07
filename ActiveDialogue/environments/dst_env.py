@@ -95,6 +95,15 @@ class DSTEnv():
             s: np.concatenate(v) for s, v in preds.items()
         }
 
+    def metrics(self, run_eval=False):
+        metrics = {
+                "Stream progress": self._current_idx / self._args.pool_size,
+                "Exhasuted labels": self._used_labels / self._args.label_budget,
+        }
+        if run_eval:
+            metrics.update(self.eval(proportion=self._args.eval_proportion))
+        return metrics
+
     def step(self):
         """Step forward the current idx in the self._idxs path"""
         self._current_idx += self._args.al_batch
@@ -175,7 +184,6 @@ class DSTEnv():
                 loss.backward()
                 self._model.optimizer.step()
 
-    def eval(self):
+    def eval(self, proportion):
         logging.info('Running dev evaluation')
-        dev_out = self._model.run_eval(self._test_dataset, self._args)
-        pprint(dev_out)
+        return self._model.run_eval(self._test_dataset, self._args, proportion)

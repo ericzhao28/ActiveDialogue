@@ -17,3 +17,5 @@ elif os.path.exists("/book/working/ActiveDialogue"):
     mnt_dir = "/book/working/ActiveDialogue/mnt"
 elif os.path.exists("/torch/ActiveDialogue"):
     mnt_dir = "/torch/ActiveDialogue/mnt"
+
+comet_ml_key = "WwYuhoUWbTZMhZPAbwIKPVHmC"

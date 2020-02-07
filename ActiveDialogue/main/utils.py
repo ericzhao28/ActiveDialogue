@@ -1,7 +1,6 @@
 import argparse
 
-
-def main():
+def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--seed", type=int, default=0)
@@ -11,6 +10,7 @@ def main():
     parser.add_argument('--seed_size', type=int, default=1000)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--recency_bias', type=int, default=3)
+    parser.add_argument('--eval_proportion', type=float, default=0.2)
 
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
@@ -50,13 +50,4 @@ def main():
     }
     if not os.path.isdir(args.dout):
         os.makedirs(args.dout)
-
-    env = DSTEnv(woz_wrapper, GLAD, args)
-    env.train_seed()
-    ended = False
-    while not ended:
-        raw_obs, obs_dist = env.observe()
-        ended = env.step()
-
-    env.eval()
-
+    return args
