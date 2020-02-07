@@ -14,7 +14,8 @@ from pprint import pformat
 def pad(seqs, emb, device, pad=0):
     lens = [len(s) for s in seqs]
     max_len = max(lens)
-    padded = torch.LongTensor([s + (max_len-l) * [pad] for s, l in zip(seqs, lens)])
+    padded = torch.LongTensor(
+        [s + (max_len - l) * [pad] for s, l in zip(seqs, lens)])
     return emb(padded.to(device)), lens
 
 
@@ -23,9 +24,13 @@ def run_rnn(rnn, inputs, lens):
     order = np.argsort(lens)[::-1].tolist()
     reindexed = inputs.index_select(0, inputs.data.new(order).long())
     reindexed_lens = [lens[i] for i in order]
-    packed = nn.utils.rnn.pack_padded_sequence(reindexed, reindexed_lens, batch_first=True)
+    packed = nn.utils.rnn.pack_padded_sequence(reindexed,
+                                               reindexed_lens,
+                                               batch_first=True)
     outputs, _ = rnn(packed)
-    padded, _ = nn.utils.rnn.pad_packed_sequence(outputs, batch_first=True, padding_value=0.)
+    padded, _ = nn.utils.rnn.pad_packed_sequence(outputs,
+                                                 batch_first=True,
+                                                 padding_value=0.)
     reverse_order = np.argsort(order).tolist()
     recovered = padded.index_select(0, inputs.data.new(reverse_order).long())
     # reindexed_lens = [lens[i] for i in order]
@@ -50,6 +55,7 @@ def attend(seq, cond, lens):
     context = scores.unsqueeze(-1).expand_as(seq).mul(seq).sum(-2)
     return context, scores
 
+
 class FixedEmbedding(nn.Embedding):
     """
     this is the same as `nn.Embedding` but detaches the result from the graph and has dropout after lookup.
@@ -67,13 +73,19 @@ class FixedEmbedding(nn.Embedding):
 
 class Model(nn.Module):
 
-    def __init__(self, args, ontology, vocab):
+    def __init__(self, args, ontology, vocab, dout=None):
         super().__init__()
         self.optimizer = None
         self.args = args
+        if dout is None:
+            self.dout = args.dout
+        else:
+            self.dout = dout
         self.vocab = vocab
         self.ontology = ontology
-        self.emb_fixed = FixedEmbedding(len(vocab), args.demb, dropout=args.dropout.get('emb', 0.2))
+        self.emb_fixed = FixedEmbedding(len(vocab),
+                                        args.demb,
+                                        dropout=args.dropout.get('emb', 0.2))
 
     @property
     def device(self):
@@ -91,8 +103,11 @@ class Model(nn.Module):
 
     def get_train_logger(self):
         logger = logging.getLogger('train-{}'.format(self.__class__.__name__))
-        formatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
-        file_handler = logging.FileHandler(os.path.join(self.args.dout, 'train.log'))
+        formatter = logging.Formatter(
+            '%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s'
+        )
+        file_handler = logging.FileHandler(
+            os.path.join(self.dout, 'train.log'))
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         return logger
@@ -110,7 +125,8 @@ class Model(nn.Module):
 
             # train and update parameters
             self.train()
-            for batch in train.batch(batch_size=args.batch_size, shuffle=True):
+            for batch in train.batch(batch_size=args.batch_size,
+                                     shuffle=True):
                 iteration += 1
                 self.zero_grad()
                 loss, scores = self.forward(batch)
@@ -122,8 +138,14 @@ class Model(nn.Module):
             summary = {'iteration': iteration, 'epoch': epoch}
             for k, v in track.items():
                 summary[k] = sum(v) / len(v)
-            summary.update({'eval_train_{}'.format(k): v for k, v in self.run_eval(train, args).items()})
-            summary.update({'eval_dev_{}'.format(k): v for k, v in self.run_eval(dev, args).items()})
+            summary.update({
+                'eval_train_{}'.format(k): v
+                for k, v in self.run_eval(train, args).items()
+            })
+            summary.update({
+                'eval_dev_{}'.format(k): v
+                for k, v in self.run_eval(dev, args).items()
+            })
 
             # do early stopping saves
             stop_key = 'eval_dev_{}'.format(args.stop)
@@ -134,14 +156,19 @@ class Model(nn.Module):
                 best.update(summary)
                 self.save(
                     best,
-                    identifier='epoch={epoch},iter={iteration},train_{key}={train},dev_{key}={dev}'.format(
-                        epoch=epoch, iteration=iteration, train=best_train, dev=best_dev, key=args.stop,
-                    )
-                )
+                    identifier=
+                    'epoch={epoch},iter={iteration},train_{key}={train},dev_{key}={dev}'
+                    .format(
+                        epoch=epoch,
+                        iteration=iteration,
+                        train=best_train,
+                        dev=best_dev,
+                        key=args.stop,
+                    ))
                 self.prune_saves()
                 dev.record_preds(
                     preds=self.run_pred(dev, self.args),
-                    to_file=os.path.join(self.args.dout, 'dev.pred.json'),
+                    to_file=os.path.join(self.dout, 'dev.pred.json'),
                 )
             summary.update({'best_{}'.format(k): v for k, v in best.items()})
             logger.info(pformat(summary))
@@ -152,13 +179,17 @@ class Model(nn.Module):
         predictions = [set() for i in range(batch_size)]
         for s in self.ontology.slots:
             for i, p in enumerate(scores[s]):
-                triggered = [(s, v, p_v) for v, p_v in zip(self.ontology.values[s], p) if p_v > threshold]
+                triggered = [(s, v, p_v)
+                             for v, p_v in zip(self.ontology.values[s], p)
+                             if p_v > threshold]
                 if s == 'request':
                     # we can have multiple requests predictions
                     predictions[i] |= set([(s, v) for s, v, p_v in triggered])
                 elif triggered:
                     # only extract the top inform prediction
-                    sort = sorted(triggered, key=lambda tup: tup[-1], reverse=True)
+                    sort = sorted(triggered,
+                                  key=lambda tup: tup[-1],
+                                  reverse=True)
                     predictions[i].add((sort[0][0], sort[0][1]))
         return predictions
 
@@ -175,7 +206,7 @@ class Model(nn.Module):
         return dev.evaluate_preds(predictions)
 
     def save_config(self):
-        fname = '{}/config.json'.format(self.args.dout)
+        fname = '{}/config.json'.format(self.dout)
         with open(fname, 'wt') as f:
             logging.info('saving config to {}'.format(fname))
             json.dump(vars(self.args), f, indent=2)
@@ -190,7 +221,7 @@ class Model(nn.Module):
         return cls(args, ontology)
 
     def save(self, summary, identifier):
-        fname = '{}/{}.t7'.format(self.args.dout, identifier)
+        fname = '{}/{}.t7'.format(self.dout, identifier)
         logging.info('saving model to {}'.format(fname))
         state = {
             'args': vars(self.args),
@@ -209,7 +240,7 @@ class Model(nn.Module):
 
     def get_saves(self, directory=None):
         if directory is None:
-            directory = self.args.dout
+            directory = self.dout
         files = [f for f in os.listdir(directory) if f.endswith('.t7')]
         scores = []
         for fname in files:
@@ -231,7 +262,7 @@ class Model(nn.Module):
 
     def load_best_save(self, directory):
         if directory is None:
-            directory = self.args.dout
+            directory = self.dout
 
         scores_and_files = self.get_saves(directory=directory)
         if scores_and_files:

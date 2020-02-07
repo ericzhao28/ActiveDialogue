@@ -27,7 +27,8 @@ class SelfAttention(nn.Module):
     def forward(self, inp, lens):
         batch_size, seq_len, d_feat = inp.size()
         inp = self.dropout(inp)
-        scores = self.scorer(inp.contiguous().view(-1, d_feat)).view(batch_size, seq_len)
+        scores = self.scorer(inp.contiguous().view(-1, d_feat)).view(
+            batch_size, seq_len)
         max_len = max(lens)
         for i, l in enumerate(lens):
             if l < max_len:
@@ -45,11 +46,25 @@ class GLADEncoder(nn.Module):
     def __init__(self, din, dhid, slots, dropout=None):
         super().__init__()
         self.dropout = dropout or {}
-        self.global_rnn = nn.LSTM(din, dhid, bidirectional=True, batch_first=True)
-        self.global_selfattn = SelfAttention(2 * dhid, dropout=self.dropout.get('selfattn', 0.))
+        self.global_rnn = nn.LSTM(din,
+                                  dhid,
+                                  bidirectional=True,
+                                  batch_first=True)
+        self.global_selfattn = SelfAttention(2 * dhid,
+                                             dropout=self.dropout.get(
+                                                 'selfattn', 0.))
         for s in slots:
-            setattr(self, '{}_rnn'.format(s), nn.LSTM(din, dhid, bidirectional=True, batch_first=True, dropout=self.dropout.get('rnn', 0.)))
-            setattr(self, '{}_selfattn'.format(s), SelfAttention(2*dhid, dropout=self.dropout.get('selfattn', 0.)))
+            setattr(
+                self, '{}_rnn'.format(s),
+                nn.LSTM(din,
+                        dhid,
+                        bidirectional=True,
+                        batch_first=True,
+                        dropout=self.dropout.get('rnn', 0.)))
+            setattr(
+                self, '{}_selfattn'.format(s),
+                SelfAttention(2 * dhid,
+                              dropout=self.dropout.get('selfattn', 0.)))
         self.slots = slots
         self.beta_raw = nn.Parameter(torch.Tensor(len(slots)))
         nn.init.uniform_(self.beta_raw, -0.01, 0.01)
@@ -63,8 +78,16 @@ class GLADEncoder(nn.Module):
         beta = self.beta(slot)
         local_h = run_rnn(local_rnn, x, x_len)
         global_h = run_rnn(self.global_rnn, x, x_len)
-        h = F.dropout(local_h, self.dropout.get('local', default_dropout), self.training) * beta + F.dropout(global_h, self.dropout.get('global', default_dropout), self.training) * (1-beta)
-        c = F.dropout(local_selfattn(h, x_len), self.dropout.get('local', default_dropout), self.training) * beta + F.dropout(self.global_selfattn(h, x_len), self.dropout.get('global', default_dropout), self.training) * (1-beta)
+        h = F.dropout(local_h, self.dropout.get(
+            'local', default_dropout), self.training) * beta + F.dropout(
+                global_h, self.dropout.get('global', default_dropout),
+                self.training) * (1 - beta)
+        c = F.dropout(local_selfattn(h, x_len),
+                      self.dropout.get('local', default_dropout),
+                      self.training) * beta + F.dropout(
+                          self.global_selfattn(h, x_len),
+                          self.dropout.get('global', default_dropout),
+                          self.training) * (1 - beta)
         return h, c
 
 
@@ -76,52 +99,80 @@ class GLAD(Model):
     def __init__(self, args, ontology, vocab):
         super().__init__()
 
-        self.utt_encoder = GLADEncoder(args.demb, args.dhid, self.ontology.slots, dropout=args.dropout)
-        self.act_encoder = GLADEncoder(args.demb, args.dhid, self.ontology.slots, dropout=args.dropout)
-        self.ont_encoder = GLADEncoder(args.demb, args.dhid, self.ontology.slots, dropout=args.dropout)
+        self.utt_encoder = GLADEncoder(args.demb,
+                                       args.dhid,
+                                       self.ontology.slots,
+                                       dropout=args.dropout)
+        self.act_encoder = GLADEncoder(args.demb,
+                                       args.dhid,
+                                       self.ontology.slots,
+                                       dropout=args.dropout)
+        self.ont_encoder = GLADEncoder(args.demb,
+                                       args.dhid,
+                                       self.ontology.slots,
+                                       dropout=args.dropout)
         self.utt_scorer = nn.Linear(2 * args.dhid, 1)
         self.score_weight = nn.Parameter(torch.Tensor([0.5]))
 
-    def forward(self, batch):
+    def forward(self, batch, labels):
         # convert to variables and look up embeddings
         eos = self.vocab.word2index('<eos>')
-        utterance, utterance_len = pad([e.num['transcript'] for e in batch], self.emb_fixed, self.device, pad=eos)
-        acts = [pad(e.num['system_acts'], self.emb_fixed, self.device, pad=eos) for e in batch]
-        ontology = {s: pad(v, self.emb_fixed, self.device, pad=eos) for s, v in self.ontology.num.items()}
+        utterance, utterance_len = pad([e.num['transcript'] for e in batch],
+                                       self.emb_fixed,
+                                       self.device,
+                                       pad=eos)
+        acts = [
+            pad(e.num['system_acts'], self.emb_fixed, self.device, pad=eos)
+            for e in batch
+        ]
+        ontology = {
+            s: pad(v, self.emb_fixed, self.device, pad=eos)
+            for s, v in self.ontology.num.items()
+        }
 
         ys = {}
         for s in self.ontology.slots:
             # for each slot, compute the scores for each value
             H_utt, c_utt = self.utt_encoder(utterance, utterance_len, slot=s)
-            _, C_acts = list(zip(*[self.act_encoder(a, a_len, slot=s) for a, a_len in acts]))
-            _, C_vals = self.ont_encoder(ontology[s][0], ontology[s][1], slot=s)
+            _, C_acts = list(
+                zip(*[
+                    self.act_encoder(a, a_len, slot=s) for a, a_len in acts
+                ]))
+            _, C_vals = self.ont_encoder(ontology[s][0],
+                                         ontology[s][1],
+                                         slot=s)
 
             # compute the previous action score
             q_acts = []
             for i, C_act in enumerate(C_acts):
-                q_act, _ = attend(C_act.unsqueeze(0), c_utt[i].unsqueeze(0), lens=[C_act.size(0)])
+                q_act, _ = attend(C_act.unsqueeze(0),
+                                  c_utt[i].unsqueeze(0),
+                                  lens=[C_act.size(0)])
                 q_acts.append(q_act)
             y_acts = torch.cat(q_acts, dim=0).mm(C_vals.transpose(0, 1))
 
             # compute the utterance score
             C_acts = torch.cat(C_acts)
-            q_utts, _ = attend(torch.repeat_interleave(H_utt.unsqueeze(0), C_vals.size(0), 0), torch.repeat_interleave(C_vals.unsqueeze(1), len(batch), 1), lens=utterance_len)
+            q_utts, _ = attend(
+                torch.repeat_interleave(H_utt.unsqueeze(0), C_vals.size(0),
+                                        0),
+                torch.repeat_interleave(C_vals.unsqueeze(1), len(batch), 1),
+                lens=utterance_len)
             y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
 
             # combine the scores
             ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts)
 
         if self.training:
-            # create label variable and compute loss
-            labels = {s: [len(self.ontology.values[s]) * [0] for i in range(len(batch))] for s in self.ontology.slots}
-            for i, e in enumerate(batch):
-                for s, v in e.turn_label:
-                    labels[s][i][self.ontology.values[s].index(v)] = 1
-            labels = {s: torch.Tensor(m).to(self.device) for s, m in labels.items()}
+            labels = {
+                s: torch.Tensor(m).to(self.device) for s, m in labels.items()
+            }
 
             loss = 0
             for s in self.ontology.slots:
-                loss += F.binary_cross_entropy(ys[s], labels[s])
+                loss += torch.mean(
+                    F.binary_cross_entropy(ys[s], labels[s],
+                                           reduction=None).mul(mask))
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}

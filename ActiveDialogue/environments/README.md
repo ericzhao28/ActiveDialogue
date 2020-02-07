@@ -1,7 +1,10 @@
 # ActiveDialogue Environment
 
-The ActiveDialogue environment is implemented in `active_dialogue_env` in an
-OpenAI Gym compatible form. Baseline policy performances on this environment
-are available in `baseline_active_dialogue_env`. Command line access to
-the environment is available in `env_interface`. Unit tests are available in
-`test_active_dialogue_env`.
+We implement an environment for maintaining a model and support set for dialogue state tracking tests. The primary environment is `DSTEnv`.
+
+## DSTEnv
+### Initialization
+The environment seeds all library RNGs to ensure consistent seed set production (so we can re-use saves of our underlying models). The environment retains the caller's args.
+
+The dataset is initialized,
+

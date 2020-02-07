@@ -5,13 +5,13 @@ from argparse import ArgumentParser, Namespace
 from pprint import pprint
 from utils import load_dataset, load_model
 
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('dsave', help='save location of model')
     parser.add_argument('--split', help='split to evaluate on', default='dev')
     parser.add_argument('--gpu', type=int, help='gpu to use', default=None)
-    parser.add_argument('--fout', help='optional save file to store the predictions')
+    parser.add_argument('--fout',
+                        help='optional save file to store the predictions')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -28,7 +28,9 @@ if __name__ == '__main__':
     if args.gpu is not None:
         model.cuda(args.gpu)
 
-    logging.info('Making predictions for {} dialogues and {} turns'.format(len(dataset[args.split]), len(list(dataset[args.split].iter_turns()))))
+    logging.info('Making predictions for {} dialogues and {} turns'.format(
+        len(dataset[args.split]),
+        len(list(dataset[args.split].iter_turns()))))
     preds = model.run_pred(dataset[args.split], args_save)
     pprint(dataset[args.split].evaluate_preds(preds))
 

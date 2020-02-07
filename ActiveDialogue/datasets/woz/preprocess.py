@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from ActiveDialogue.config import mnt_dir
-from ActiveDialogue.datasets.common import Ontology, Dataset
+from ActiveDialogue.datasets.common.ontology import Ontology
+from ActiveDialogue.datasets.common.dataset import Dataset
 import os
 import json
 import logging
@@ -9,9 +10,7 @@ from tqdm import tqdm
 from vocab import Vocab
 from embeddings import GloveEmbedding, KazumaCharEmbedding
 
-
 data_dir = mnt_dir + "/woz"
-
 
 draw = os.path.join(data_dir, 'raw')
 dann = os.path.join(data_dir, 'ann')
@@ -28,16 +27,23 @@ def download(url, to_file):
 
 
 def missing_files(d, files):
-    return not all([os.path.isfile(os.path.join(d, '{}.json'.format(s))) for s in files])
+    return not all(
+        [os.path.isfile(os.path.join(d, '{}.json'.format(s))) for s in files])
 
 
 if __name__ == '__main__':
     if missing_files(draw, splits):
         if not os.path.isdir(draw):
             os.makedirs(draw)
-        download('https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_train_en.json', os.path.join(draw, 'train.json'))
-        download('https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_validate_en.json', os.path.join(draw, 'dev.json'))
-        download('https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_test_en.json', os.path.join(draw, 'test.json'))
+        download(
+            'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_train_en.json',
+            os.path.join(draw, 'train.json'))
+        download(
+            'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_validate_en.json',
+            os.path.join(draw, 'dev.json'))
+        download(
+            'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_test_en.json',
+            os.path.join(draw, 'test.json'))
 
     if missing_files(dann, files=splits + ['ontology', 'vocab', 'emb']):
         if not os.path.isdir(dann):
@@ -49,7 +55,8 @@ if __name__ == '__main__':
         for s in splits:
             fname = '{}.json'.format(s)
             logging.warn('Annotating {}'.format(s))
-            dataset[s] = Dataset.annotate_raw(os.path.join(draw, fname))
+            dataset[s] = Dataset.annotate_raw(os.path.join(draw, fname),
+                                              ontology)
             dataset[s].numericalize_(vocab)
             ontology = ontology + dataset[s].extract_ontology()
             with open(os.path.join(dann, fname), 'wt') as f:
