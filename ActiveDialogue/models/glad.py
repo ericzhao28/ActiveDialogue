@@ -1,17 +1,11 @@
 """Global-Locally Self-Attentive DST architecture (1805.09655)"""
 
-from ActiveDialogue.models.common import Model
+from ActiveDialogue.models.common import Model, run_rnn, pad, attend
+import pdb
 import torch
 from torch import nn
-from torch import optim
 from torch.nn import functional as F
 import numpy as np
-import logging
-import os
-import re
-import json
-from collections import defaultdict
-from pprint import pformat
 
 
 class SelfAttention(nn.Module):
@@ -97,7 +91,7 @@ class GLAD(Model):
     """
 
     def __init__(self, args, ontology, vocab):
-        super().__init__()
+        super().__init__(args, ontology, vocab)
 
         self.utt_encoder = GLADEncoder(args.demb,
                                        args.dhid,
@@ -173,9 +167,11 @@ class GLAD(Model):
                 if mask:
                     loss += F.binary_cross_entropy(
                         ys[s], labels[s], reduction=None).mul(
-                            mask[s]) / torch.sum(mask[s], dim=1)**args.gamma
+                            mask[s]) / torch.sum(mask[s],
+                                                 dim=1)**self.args.gamma
                 else:
                     loss += F.binary_cross_entropy(ys[s], labels[s])
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}
+

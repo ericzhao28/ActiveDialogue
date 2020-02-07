@@ -89,7 +89,7 @@ class Model(nn.Module):
 
     @property
     def device(self):
-        if self.args.gpu is not None and torch.cuda.is_available():
+        if self.args.device is not None and torch.cuda.is_available():
             return torch.device('cuda')
         else:
             return torch.device('cpu')
