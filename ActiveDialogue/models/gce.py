@@ -145,9 +145,10 @@ class GCE(Model):
             labels = {
                 s: torch.Tensor(m).to(self.device) for s, m in labels.items()
             }
-            mask = {
-                s: torch.Tensor(m).to(self.device) for s, m in mask.items()
-            }
+            if mask:
+                mask = {
+                    s: torch.Tensor(m).to(self.device) for s, m in mask.items()
+                }
 
             loss = 0
             for s in self.ontology.slots:

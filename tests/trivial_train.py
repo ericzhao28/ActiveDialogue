@@ -10,10 +10,11 @@ from pprint import pprint
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=239342)
     parser.add_argument('--device', type=int, default=None)
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
+    parser.add_argument('--seed_epochs', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=50)
     parser.add_argument('--dexp',
                         help='root experiment folder',
@@ -82,7 +83,7 @@ def main():
             model.optimizer.step()
 
     logging.info('Running dev evaluation')
-    dev_out = model.run_eval(datasets["test"], args, 0.2)
+    dev_out = model.run_eval(datasets["test"], args)
     pprint(dev_out)
 
 

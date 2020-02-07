@@ -139,9 +139,9 @@ class Model(nn.Module):
             predictions += self.extract_predictions(scores)
         return predictions
 
-    def run_eval(self, dev, args, proportion):
+    def run_eval(self, dev, args):
         predictions = self.run_pred(dev, args)
-        return dev.evaluate_preds(predictions, proportion)
+        return dev.evaluate_preds(predictions)
 
     def save_config(self):
         fname = '{}/config.json'.format(self.dout)

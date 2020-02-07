@@ -8,8 +8,9 @@ from ActiveDialogue.models.glad import GLAD
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--seed", type=int, default=10)
+    parser.add_argument("--seed", type=int, default=10394289348293)
     parser.add_argument('--device', type=int, default=None)
+    parser.add_argument('--seed_epochs', type=int, default=1)
     parser.add_argument('--al_batch', type=int, default=128)
     parser.add_argument('--pool_size', type=int, default=256)
     parser.add_argument('--seed_size', type=int, default=50)
@@ -61,7 +62,7 @@ def main():
         raw_obs, obs_dist = env.observe()
         ended = env.step()
 
-    env.eval(0.2)
+    env.eval()
 
 
 if __name__ == "__main__":

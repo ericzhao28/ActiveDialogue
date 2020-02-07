@@ -2,6 +2,7 @@ from ActiveDialogue.datasets.common.dialogue import Dialogue
 from ActiveDialogue.datasets.common.ontology import Ontology
 import json
 from collections import defaultdict
+import pdb
 import logging
 import numpy as np
 from tqdm import tqdm
@@ -35,6 +36,7 @@ class Dataset:
         self.turns = np.array(self.turns, dtype=np.object_)
         self.turns_dlg = np.array(self.turns_dlg, dtype=np.int32)
         print("Loaded {} turns.".format(len(self.turns)))
+        print("Loaded {} dialogues.".format(len(self.dialogues)))
         self.turns_labels = {
             s: np.zeros((len(self.turns), len(ontology.values[s])),
                         dtype=np.float32) for s in ontology.slots
@@ -57,6 +59,9 @@ class Dataset:
             turn_idx_cap: 1 + maximum turn idx (number of turns from all
                           dialogues).
         """
+        if seed_size >= len(self.dialogues):
+            raise ValueError()
+
         # List of turn idxs divided by dialogue index (first seed_size
         # are reserved for seeding).
         seed_idxs = np.where(self.turns_dlg < seed_size)[0]
@@ -65,7 +70,7 @@ class Dataset:
         if sample_mode == "singlepass":
             # Grab permutations of nonseed_idxs until pool_size is hit.
             nonseed_idxs = []
-            while len(nonseed_idxs) < pool_size:
+            for i in range(0, pool_size + len(orig_nonseed_idxs), len(orig_nonseed_idxs)):
                 nonseed_idxs.append(np.random.permutation(orig_nonseed_idxs))
             nonseed_idxs = np.concatenate(nonseed_idxs)[:pool_size]
         elif sample_mode == "uniform":
@@ -159,17 +164,13 @@ class Dataset:
             slot: values[idxs] for slot, values in self.turns_labels.items()
         }
 
-    def evaluate_preds(self, preds, proportion):
+    def evaluate_preds(self, preds):
         request = []
         inform = []
         joint_goal = []
         fix = {'centre': 'center', 'areas': 'area', 'phone number': 'number'}
         i = 0
         dialogues = self.dialogues
-        if proportion:
-            idxs = np.random.permutation(np.arange(
-                len(dialogues)))[:int(proportion * float(len(dialogues)))]
-            dialogues = dialogues[idxs]
         for d in dialogues:
             pred_state = {}
             for t in d.turns:

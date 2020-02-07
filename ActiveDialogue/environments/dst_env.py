@@ -94,7 +94,7 @@ class DSTEnv():
             "Exhasuted labels": self._used_labels / self._args.label_budget,
         }
         if run_eval:
-            metrics.update(self.eval(proportion=self._args.eval_proportion))
+            metrics.update(self.eval())
         return metrics
 
     def step(self):
@@ -108,7 +108,7 @@ class DSTEnv():
         return self._idxs[np.arange(
             self._current_idx,
             min(self._current_idx + self._args.al_batch,
-                self._args.pool_size))]
+                self._args.pool_size - 1))]
 
     def label(self, label):
         """Label current batch of data"""
@@ -188,7 +188,6 @@ class DSTEnv():
                 loss.backward()
                 self._model.optimizer.step()
 
-    def eval(self, proportion):
+    def eval(self):
         logging.info('Running dev evaluation')
-        return self._model.run_eval(self._test_dataset, self._args,
-                                    proportion)
+        return self._model.run_eval(self._test_dataset, self._args)
