@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import random
 import logging
+import pdb
 from pprint import pprint
 
 
@@ -35,13 +36,7 @@ class DSTEnv():
         self._used_labels = 0
         self._support_idxs = set()
         self._latest_support_idxs = []
-        self._support_masks = {}
         self._support_labels = {}
-        for s in self._ontology.slots:
-            self._support_masks[s] = np.full(
-                (num_turns, len(self._ontology.values[s])),
-                fill_value=-1,
-                dtype=np.int32)
         for s in self._ontology.slots:
             self._support_labels[s] = np.full(
                 (num_turns, len(self._ontology.values[s])),
@@ -53,20 +48,18 @@ class DSTEnv():
         self._support_idxs = set(seed_idxs)
         if args.seed_size:
             for s in self._ontology.slots:
-                self._support_masks[s][seed_idxs, :] = 1
                 self._support_labels[s][seed_idxs, :] = seed_labels[s]
-
-        print("Seeding")
-        if not self.load_seed():
-            self.train_seed()
-            print("Saving!")
-        else:
-            print("Loaded!")
+            print("Seeding")
+            if not self.load_seed():
+                self.train_seed()
+                print("Saving!")
+            else:
+                print("Loaded!")
 
     def train_seed(self):
         """Train a model on seed support and save as seed"""
         self._model = self._model.to(self._model.device)
-        self.fit()
+        self.fit(self._args.seed_epochs)
         self._model.save({}, identifier='seed' + str(self._args.seed))
 
     def load_seed(self):
@@ -97,8 +90,8 @@ class DSTEnv():
 
     def metrics(self, run_eval=False):
         metrics = {
-                "Stream progress": self._current_idx / self._args.pool_size,
-                "Exhasuted labels": self._used_labels / self._args.label_budget,
+            "Stream progress": self._current_idx / self._args.pool_size,
+            "Exhasuted labels": self._used_labels / self._args.label_budget,
         }
         if run_eval:
             metrics.update(self.eval(proportion=self._args.eval_proportion))
@@ -155,16 +148,24 @@ class DSTEnv():
             return True
         return False
 
-    def fit(self):
-        idxs = self._support_idxs + np.repeat(self._latest_support_idxs,
-                                              self._args.recency_bias)
+    def fit(self, epochs=None):
+        print("Fitting on {} viable turns.".format(len(self._support_idxs)))
+        if self._latest_support_idxs:
+            idxs = np.concatenate((self._support_idxs,
+                                   np.repeat(self._latest_support_idxs,
+                                             self._args.recency_bias)))
+        else:
+            idxs = list(self._support_idxs)
 
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
         iteration = 0
-        for epoch in range(self._args.epochs):
-            logging.info('starting epoch {}'.format(epoch))
+        if not epochs:
+            epochs = self._args_epochs
+        print("Training for {} epochs starting now.".format(epochs))
+        for epoch in range(epochs):
+            print('starting epoch {}'.format(epoch))
 
             # train and update parameters
             for batch, batch_labels in self._dataset.batch(
@@ -177,13 +178,17 @@ class DSTEnv():
                     shuffle=True):
                 iteration += 1
                 self._model.zero_grad()
-                loss, scores = self.forward(batch,
-                                            batch_labels,
-                                            mask=np.array(batch_labels != -1),
-                                            training=True)
+                loss, scores = self._model.forward(
+                    batch,
+                    batch_labels,
+                    mask={
+                        s: np.array(v != -1) for s, v in batch_labels.items()
+                    },
+                    training=True)
                 loss.backward()
                 self._model.optimizer.step()
 
     def eval(self, proportion):
         logging.info('Running dev evaluation')
-        return self._model.run_eval(self._test_dataset, self._args, proportion)
+        return self._model.run_eval(self._test_dataset, self._args,
+                                    proportion)

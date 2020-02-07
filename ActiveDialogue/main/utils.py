@@ -1,20 +1,23 @@
 import argparse
+import os
+
 
 def get_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument('--device', type=int, default=None)
+    parser.add_argument("--seed", type=int, default=28)
+    parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--al_batch', type=int, default=512)
-    parser.add_argument('--pool_size', type=int, default=10000)
+    parser.add_argument('--pool_size', type=int, default=30000)
+    parser.add_argument('--label_budget', type=int, default=1000)
     parser.add_argument('--seed_size', type=int, default=1000)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--recency_bias', type=int, default=3)
-    parser.add_argument('--eval_proportion', type=float, default=0.2)
-
+    parser.add_argument('--eval_proportion', type=float, default=1)
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=50)
+    parser.add_argument('--seed_epochs', type=int, default=40)
+    parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')
@@ -26,6 +29,7 @@ def get_args():
                         help='hidden state size',
                         default=200,
                         type=int)
+    parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--lr',
                         help='learning rate',
                         default=1e-3,

@@ -13,6 +13,8 @@ if os.path.exists("/home/em/projects/ActiveDialogue/ActiveDialogue"):
     mnt_dir = "/home/em/projects/ActiveDialogue/mnt"
 elif os.path.exists("/home/ubuntu/ActiveDialogue"):
     mnt_dir = "/home/ubuntu/ActiveDialogue/mnt"
+elif os.path.exists("/home/ubuntu/projects/ActiveDialogue"):
+    mnt_dir = "/home/ubuntu/projects/ActiveDialogue/mnt"
 elif os.path.exists("/book/working/ActiveDialogue"):
     mnt_dir = "/book/working/ActiveDialogue/mnt"
 elif os.path.exists("/torch/ActiveDialogue"):

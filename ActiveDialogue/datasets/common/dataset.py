@@ -167,7 +167,8 @@ class Dataset:
         i = 0
         dialogues = self.dialogues
         if proportion:
-            idxs = np.random.permutation(np.arange(len(dialogues)))[:int(proportion * float(len(dialogues)))]
+            idxs = np.random.permutation(np.arange(
+                len(dialogues)))[:int(proportion * float(len(dialogues)))]
             dialogues = dialogues[idxs]
         for d in dialogues:
             pred_state = {}

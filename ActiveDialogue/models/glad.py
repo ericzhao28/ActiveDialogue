@@ -161,14 +161,21 @@ class GLAD(Model):
             labels = {
                 s: torch.Tensor(m).to(self.device) for s, m in labels.items()
             }
+            mask = {
+                s: torch.Tensor(m).to(self.device) for s, m in mask.items()
+            }
 
             loss = 0
             for s in self.ontology.slots:
                 if mask:
-                    loss += F.binary_cross_entropy(
-                        ys[s], labels[s], reduction=None).mul(
-                            mask[s]) / torch.sum(mask[s],
-                                                 dim=1)**self.args.gamma
+                    unweighted = F.binary_cross_entropy(ys[s],
+                                                        labels[s],
+                                                        reduction='none').mul(
+                                                            mask[s])
+                    weight = torch.sum(mask[s], dim=1)**self.args.gamma
+                    loss += torch.mean(
+                        unweighted /
+                        weight.unsqueeze(1).expand_as(unweighted))
                 else:
                     loss += F.binary_cross_entropy(ys[s], labels[s])
         else:

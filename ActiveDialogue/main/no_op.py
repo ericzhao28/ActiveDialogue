@@ -2,7 +2,7 @@ from comet_ml import Experiment
 from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
-from ActiveDialogue.utils import get_args
+from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
 
 
@@ -20,7 +20,7 @@ def main():
             logger.log_current_epoch(i)
             raw_obs, obs_dist = env.observe()
             ended = env.step()
-            for k, v in env.metrics(True):
+            for k, v in env.metrics(True).items():
                 logger.log_metric(k, v, step=i)
 
 
