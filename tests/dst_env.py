@@ -8,7 +8,7 @@ from ActiveDialogue.models.glad import GLAD
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--seed", type=int, default=10394289348293)
+    parser.add_argument("--seed", type=int, default=103942893)
     parser.add_argument('--device', type=int, default=None)
     parser.add_argument('--seed_epochs', type=int, default=1)
     parser.add_argument('--al_batch', type=int, default=128)
@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=40)
+    parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')
