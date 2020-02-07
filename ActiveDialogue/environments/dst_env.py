@@ -28,7 +28,7 @@ class DSTEnv():
         self._dataset = datasets["train"]
         self._test_dataset = datasets["test"]
         self._indices, seed_indices, num_turns = self._dataset.get_turn_indices(
-            args.pool_size, args.seed_size, sample_mode=args._sample_mode)
+            args.pool_size, args.seed_size, sample_mode=args.sample_mode)
 
         # Load model
         self._model = model_cls(args, self._ontology, vocab)
@@ -61,14 +61,11 @@ class DSTEnv():
         self._model = self._model.to(self._model.device)
         self._fit()
 
-        # evalute on train and dev
         summary = {
             'eval_dev_{}'.format(k): v for k, v in self._model.run_eval(
                 self._test_dataset, self._args).items()
         }
-
-        # do early stopping saves
-        self.save(summary, identifier='seed')
+        self._model.save(summary, identifier='seed')
 
     def load_seed(self):
         self._model.load_best_save()
@@ -76,7 +73,13 @@ class DSTEnv():
 
     def observe(self):
         datapoints = self._dataset.batch_indices()
-        loss, scores = self._model.forward(datapoints)
+        scores = []
+        labeled_indices = self._indices[np.arange(
+            self._current_idx, self._current_idx + self._args.al_batch)]
+        for batch, _ in self._dataset.batch(batch_size=self._args.batch_size,
+                                            indices=labeled_indices,
+                                            shuffle=False):
+            scores += self._model.forward(datapoints)[1]
         return datapoints, scores
 
     def step(self):
@@ -84,19 +87,30 @@ class DSTEnv():
         return self._current_idx > self._args.pool_size
 
     def label(self, label):
-        feedback = True
-        labeled_indices = self._indices(
-            np.arange(self._current_idx,
-                      self._current_idx + self._args.al_batch))
-        for s in self._ontology.slots:
-            self._support_labels[labeled_indices][label[s]] = (1 if feedback
-                                                               else 0)
+        if self._args.label_budget < len(label) + self._used_labels:
+            label = label[:max(0, self._args.label_budget -
+                               self._used_labels)]
+        if label:
+            labeled_indices = self._indices[np.arange(
+                self._current_idx, self._current_idx + self._args.al_batch)]
 
-    def fit(self, iterations):
+            feedback = True
+            for s in self._ontology.slots:
+                feedback = feedback and np.all(
+                    self._dataset.get_labels(labeled_indices)[s][:len(label)][
+                        label[s] != -1] == label[s][label[s] != -1])
+
+            for s in self._ontology.slots:
+                self._support_labels[labeled_indices][s][:len(label)][
+                    label[s] != -1] = (1 if feedback else 0)
+            self._used_labels += len(label)
+            return True
+        return False
+
+    def fit(self):
         iteration = 0
-        labeled_indices = self._indices(
-            np.arange(self._current_idx,
-                      self._current_idx + self._args.al_batch))
+        labeled_indices = self._indices[np.arange(
+            self._current_idx, self._current_idx + self._args.al_batch)]
 
         if self.optimizer is None:
             self.set_optimizer()
@@ -115,11 +129,13 @@ class DSTEnv():
                     batch_size=self._args.batch_size,
                     indices=indices,
                     labels=np.maximum(self._support_labels, 0),
-                    mask=np.array(batch_labels == -1),
                     shuffle=True):
                 iteration += 1
                 self.zero_grad()
-                loss, scores = self.forward(batch, batch_labels)
+                loss, scores = self.forward(batch,
+                                            batch_labels,
+                                            mask=np.array(batch_labels == -1),
+                                            training=True)
                 loss.backward()
                 self.optimizer.step()
 

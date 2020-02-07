@@ -91,7 +91,7 @@ class GCE(Model):
         self.score_weight = nn.Parameter(torch.Tensor([0.5]))
         self.args = args
 
-    def forward(self, batch, labels):
+    def forward(self, batch, labels, mask=False, training=False):
         # convert to variables and look up embeddings
         eos = self.vocab.word2index('<eos>')
         utterance, utterance_len = pad([e.num['transcript'] for e in batch],
@@ -147,7 +147,7 @@ class GCE(Model):
             # combine the scores
             ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts)
 
-        if self.training:
+        if training:
             # create label variable and compute loss
             labels = {
                 s: torch.Tensor(m).to(self.device) for s, m in labels.items()

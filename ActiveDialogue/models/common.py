@@ -112,68 +112,6 @@ class Model(nn.Module):
         logger.addHandler(file_handler)
         return logger
 
-    def run_train(self, train, dev, args):
-        track = defaultdict(list)
-        iteration = 0
-        best = {}
-        logger = self.get_train_logger()
-        if self.optimizer is None:
-            self.set_optimizer()
-
-        for epoch in range(args.epoch):
-            logger.info('starting epoch {}'.format(epoch))
-
-            # train and update parameters
-            self.train()
-            for batch in train.batch(batch_size=args.batch_size,
-                                     shuffle=True):
-                iteration += 1
-                self.zero_grad()
-                loss, scores = self.forward(batch)
-                loss.backward()
-                self.optimizer.step()
-                track['loss'].append(loss.item())
-
-            # evalute on train and dev
-            summary = {'iteration': iteration, 'epoch': epoch}
-            for k, v in track.items():
-                summary[k] = sum(v) / len(v)
-            summary.update({
-                'eval_train_{}'.format(k): v
-                for k, v in self.run_eval(train, args).items()
-            })
-            summary.update({
-                'eval_dev_{}'.format(k): v
-                for k, v in self.run_eval(dev, args).items()
-            })
-
-            # do early stopping saves
-            stop_key = 'eval_dev_{}'.format(args.stop)
-            train_key = 'eval_train_{}'.format(args.stop)
-            if best.get(stop_key, 0) <= summary[stop_key]:
-                best_dev = '{:f}'.format(summary[stop_key])
-                best_train = '{:f}'.format(summary[train_key])
-                best.update(summary)
-                self.save(
-                    best,
-                    identifier=
-                    'epoch={epoch},iter={iteration},train_{key}={train},dev_{key}={dev}'
-                    .format(
-                        epoch=epoch,
-                        iteration=iteration,
-                        train=best_train,
-                        dev=best_dev,
-                        key=args.stop,
-                    ))
-                self.prune_saves()
-                dev.record_preds(
-                    preds=self.run_pred(dev, self.args),
-                    to_file=os.path.join(self.dout, 'dev.pred.json'),
-                )
-            summary.update({'best_{}'.format(k): v for k, v in best.items()})
-            logger.info(pformat(summary))
-            track.clear()
-
     def extract_predictions(self, scores, threshold=0.5):
         batch_size = len(list(scores.values())[0])
         predictions = [set() for i in range(batch_size)]
@@ -196,8 +134,8 @@ class Model(nn.Module):
     def run_pred(self, dev, args):
         self.eval()
         predictions = []
-        for batch in dev.batch(batch_size=args.batch_size):
-            loss, scores = self.forward(batch)
+        for batch, batch_labels in dev.batch(batch_size=args.batch_size):
+            loss, scores = self.forward(batch, batch_labels)
             predictions += self.extract_predictions(scores)
         return predictions
 
