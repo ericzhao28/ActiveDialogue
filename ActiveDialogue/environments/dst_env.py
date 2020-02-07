@@ -1,7 +1,6 @@
 """In-dialogue selective sampling for slot labeling tasks."""
 
 import torch
-import pdb
 import numpy as np
 import random
 import logging
@@ -92,8 +91,6 @@ class DSTEnv():
             for s in batch_preds.keys():
                 preds[s].append(batch_preds[s])
             obs.append(batch)
-        if not obs:
-            pdb.set_trace()
         return np.concatenate(obs), {
             s: np.concatenate(v) for s, v in preds.items()
         }

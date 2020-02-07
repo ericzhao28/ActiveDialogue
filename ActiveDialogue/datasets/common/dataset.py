@@ -2,7 +2,7 @@ from ActiveDialogue.datasets.common.dialogue import Dialogue
 from ActiveDialogue.datasets.common.ontology import Ontology
 import json
 from collections import defaultdict
-import pdb
+import logging
 import numpy as np
 from tqdm import tqdm
 
@@ -34,6 +34,7 @@ class Dataset:
                 self.turns_dlg.append(i)
         self.turns = np.array(self.turns, dtype=np.object_)
         self.turns_dlg = np.array(self.turns_dlg, dtype=np.int32)
+        print("Loaded {} turns.".format(len(self.turns)))
         self.turns_labels = {
             s: np.zeros((len(self.turns), len(ontology.values[s])),
                         dtype=np.float32) for s in ontology.slots
