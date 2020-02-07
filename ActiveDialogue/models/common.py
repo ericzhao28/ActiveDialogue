@@ -169,6 +169,14 @@ class Model(nn.Module):
         }
         torch.save(state, fname)
 
+    def load_id(self, identifier):
+        fname = '{}/{}.t7'.format(self.dout, identifier)
+        try:
+            self.load(fname)
+            return True
+        except FileNotFoundError:
+            return False
+
     def load(self, fname):
         logging.info('loading model from {}'.format(fname))
         state = torch.load(fname)

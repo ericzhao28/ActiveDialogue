@@ -108,7 +108,7 @@ class GLAD(Model):
         self.utt_scorer = nn.Linear(2 * args.dhid, 1)
         self.score_weight = nn.Parameter(torch.Tensor([0.5]))
 
-    def forward(self, batch, labels, mask=False, training=False):
+    def forward(self, batch, labels=None, mask=False, training=False):
         # convert to variables and look up embeddings
         eos = self.vocab.word2index('<eos>')
         utterance, utterance_len = pad([e.num['transcript'] for e in batch],
@@ -174,4 +174,3 @@ class GLAD(Model):
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}
-

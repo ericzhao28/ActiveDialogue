@@ -10,15 +10,15 @@ def main():
 
     parser.add_argument("--seed", type=int, default=10)
     parser.add_argument('--device', type=int, default=None)
-    parser.add_argument('--al_batch', type=int, default=512)
-    parser.add_argument('--pool_size', type=int, default=10000)
-    parser.add_argument('--seed_size', type=int, default=1000)
+    parser.add_argument('--al_batch', type=int, default=128)
+    parser.add_argument('--pool_size', type=int, default=256)
+    parser.add_argument('--seed_size', type=int, default=50)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--recency_bias', type=int, default=3)
 
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=50)
+    parser.add_argument('--batch_size', type=int, default=40)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')
@@ -56,8 +56,6 @@ def main():
         os.makedirs(args.dout)
 
     env = DSTEnv(load_dataset, GLAD, args)
-    if args.seed:
-        env.train_seed()
     ended = False
     while not ended:
         raw_obs, obs_dist = env.observe()

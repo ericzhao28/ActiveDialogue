@@ -21,8 +21,7 @@ class DSTEnv():
         self._current_idx = 0
 
         # Select train/test/val dataset split
-        datasets, self._ontology, vocab, Eword = load_dataset(
-        )
+        datasets, self._ontology, vocab, Eword = load_dataset()
         self._dataset = datasets["train"]
         self._test_dataset = datasets["test"]
         self._idxs, seed_idxs, num_turns = self._dataset.get_turn_idxs(
@@ -33,7 +32,7 @@ class DSTEnv():
         self._model.load_emb(Eword)
         self._model = self._model.to(self._model.device)
 
-        # Support set
+        # Support set, initialize masks and labels at -1
         self._used_labels = 0
         self._support_idxs = set()
         self._latest_support_idxs = []
@@ -50,7 +49,7 @@ class DSTEnv():
                 fill_value=-1,
                 dtype=np.int32)
 
-        # Seed set
+        # Seed set: grab full labels and load into support set
         seed_labels = self._dataset.get_labels(seed_idxs)
         self._support_idxs = set(seed_idxs)
         if args.seed_size:
@@ -58,49 +57,79 @@ class DSTEnv():
                 self._support_masks[s][seed_idxs, :] = 1
                 self._support_labels[s][seed_idxs, :] = seed_labels[s]
 
+        print("Seeding")
+        if not self.load_seed():
+            self.train_seed()
+            print("Saving!")
+        else:
+            print("Loaded!")
+
     def train_seed(self):
+        """Train a model on seed support and save as seed"""
         self._model = self._model.to(self._model.device)
         self.fit()
-
-        summary = {
-            'eval_dev_{}'.format(k): v for k, v in self._model.run_eval(
-                self._test_dataset, self._args).items()
-        }
-        self._model.save(summary, identifier='seed')
+        self._model.save({}, identifier='seed' + str(self._args.seed))
 
     def load_seed(self):
-        self._model.load_best_save()
+        """"Load seeded model for the current seed"""
+        success = self._model.load_id('seed' + str(self._args.seed))
+        if not success:
+            return False
         self._model = self._model.to(self._model.device)
+        return True
 
     def observe(self):
-        datapoints = self._dataset.batch_idxs()
-        scores = []
-        labeled_idxs = self._idxs[np.arange(
-            self._current_idx, self._current_idx + self._args.al_batch)]
+        """Grab observations and predictive distributions over batch"""
+        obs = []
+        preds = {}
         for batch, _ in self._dataset.batch(batch_size=self._args.batch_size,
-                                            idxs=labeled_idxs,
+                                            idxs=self.current_idxs,
                                             shuffle=False):
-            scores += self._model.forward(datapoints)[1]
-        return datapoints, scores
+            batch_preds = self._model.forward(batch)[1]
+            if not preds:
+                for s in batch_preds.keys():
+                    preds[s] = []
+            for s in batch_preds.keys():
+                preds[s].append(batch_preds[s])
+            obs.append(batch)
+        if not obs:
+            pdb.set_trace()
+        return np.concatenate(obs), {
+            s: np.concatenate(v) for s, v in preds.items()
+        }
 
     def step(self):
+        """Step forward the current idx in the self._idxs path"""
         self._current_idx += self._args.al_batch
-        return self._current_idx > self._args.pool_size
+        return self._current_idx >= self._args.pool_size
+
+    @property
+    def current_idxs(self):
+        """Expand current_idx into an array of currently occupied idxs"""
+        return self._idxs[np.arange(
+            self._current_idx,
+            min(self._current_idx + self._args.al_batch,
+                self._args.pool_size))]
 
     def label(self, label):
-        # Grab the turn-idxs of the legal, label turns from this batch
+        """Label current batch of data"""
+        # No more labeling allowed
+        if self._args.label_budget <= self._used_labels:
+            return False
+
+        # Grab the turn-idxs of the legal, label turns from this batch:
+        # any turn with any non-trivial label
         legal = []
         for s in self._ontology.slots:
-            legal.append(np.where(np.any(label[s] != -1, axis=1)))
-        label_subidxs = np.where(np.all(np.stack(legal).transpose(1, 0, 2), dim=1))
+            legal.append(np.where(np.any(label[s] != -1, axis=1))[0])
+        label_subidxs = np.unique(np.conatenate(legal))
 
-        if self._args.label_budget < len(label) + self._used_labels:
-            label_subidxs = label_subidxs[:max(0, self._args.label_budget -
-                                                   self._used_labels)]
+        # Cut label subidxs by remaining label budget...
+        if self._args.label_budget < len(label_subidxs) + self._used_labels:
+            label_subidxs = label_subidxs[:max(
+                0, self._args.label_budget - self._used_labels)]
         label = label[label_subidxs]
-        current_idxs = self._idxs[np.arange(
-            self._current_idx, self._current_idx + self._args.al_batch)]
-        label_idxs = current_idxs[label_subidxs]
+        label_idxs = self.current_idxs[label_subidxs]
         self._latest_support_idxs = label_idxs
 
         # Label!
@@ -109,12 +138,12 @@ class DSTEnv():
             feedback = True
             for s in self._ontology.slots:
                 feedback = feedback and np.all(
-                    self._dataset.get_labels(label_idxs)[s][
-                        label[s] != -1] == label[s][label[s] != -1])
+                    self._dataset.get_labels(label_idxs)[s][label[s] != -1] ==
+                    label[s][label[s] != -1])
             # Apply labels
             for s in self._ontology.slots:
-                self._support_labels[s][label_idxs][
-                    label[s] != -1] = (1 if feedback else 0)
+                self._support_labels[s][label_idxs][label[s] != -1] = (
+                    1 if feedback else 0)
             self._used_labels += len(label)
             self._support_idxs = self._support_idxs.union(set(label_idxs))
             return True
@@ -135,7 +164,10 @@ class DSTEnv():
             for batch, batch_labels in self._dataset.batch(
                     batch_size=self._args.batch_size,
                     idxs=np.array(idxs, dtype=np.int32),
-                    labels={s: np.maximum(v, 0) for s, v in self._support_labels.items()},
+                    labels={
+                        s: np.maximum(v, 0)
+                        for s, v in self._support_labels.items()
+                    },
                     shuffle=True):
                 iteration += 1
                 self._model.zero_grad()

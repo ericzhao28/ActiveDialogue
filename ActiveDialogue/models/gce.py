@@ -84,7 +84,7 @@ class GCE(Model):
         self.score_weight = nn.Parameter(torch.Tensor([0.5]))
         self.args = args
 
-    def forward(self, batch, labels, mask=False, training=False):
+    def forward(self, batch, labels=None, mask=False, training=False):
         # convert to variables and look up embeddings
         eos = self.vocab.word2index('<eos>')
         utterance, utterance_len = pad([e.num['transcript'] for e in batch],
