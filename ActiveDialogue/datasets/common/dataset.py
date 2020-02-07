@@ -2,6 +2,7 @@ from ActiveDialogue.datasets.common.dialogue import Dialogue
 from ActiveDialogue.datasets.common.ontology import Ontology
 import json
 from collections import defaultdict
+import pdb
 import numpy as np
 from tqdm import tqdm
 
@@ -9,44 +10,74 @@ from tqdm import tqdm
 class Dataset:
 
     def __init__(self, dialogues, ontology, shuffle_dlgs=False):
-        self.dialogues = dialogues
+        """Initialize Dataset class
 
-        dlg_idxs = np.arange(len(dialogues))
+        Args:
+            dialogues: List of Dialogue instances.
+            ontology: Ontology instance.
+            shuffle_dlgs: Should Dialogue instances be shuffled?
+        """
+        # Build optionally shuffled list of dialogues.
+        dialogues = np.array(dialogues, dtype=np.object_)
         if shuffle_dlgs:
-            dlg_idxs = np.random.permutation(dlg_idxs)
+            dialogues = dialogues[np.random.permutation(
+                np.arange(len(dialogues)))]
+        self.dialogues = dialogues  # Dialogue objects
 
-        self.turns = []
-        self.turns_dlg = []
-        for i, d in enumerate(self.dialogues[dlg_idxs]):
-            for t in d:
-                self.turns.append(t)
+        # Build optionally shuffled list of turns and their corresponding
+        # labels and dialogue idxs.
+        self.turns = []  # Turn objects
+        self.turns_dlg = []  # dialogues corresponding to each turn
+        for i, dlg in enumerate(dialogues):
+            for turn in dlg.turns:
+                self.turns.append(turn)
                 self.turns_dlg.append(i)
         self.turns = np.array(self.turns, dtype=np.object_)
         self.turns_dlg = np.array(self.turns_dlg, dtype=np.int32)
-        self.labels = {
-            s: np.zeros(len(ontology.values[s]))
-            for i in range(len(self.turns)) for s in ontology.slots
+        self.turns_labels = {
+            s: np.zeros((len(self.turns), len(ontology.values[s])),
+                        dtype=np.float32) for s in ontology.slots
         }
-        for i, e in enumerate(self.turns):
-            for s, v in e.turn_label:
-                self.labels[s][i][ontology.values[s].index(v)] = 1
+        for i, turn in enumerate(self.turns):
+            for slot, value in turn.turn_label:
+                self.turns_labels[slot][i][ontology.values[slot].index(
+                    value)] = 1
 
-    def get_turn_indices(self, pool_size, seed_size, sample_mode):
-        seed_turn_idxs = np.where(self.turns_dlg < seed_size)
-        train_turn_idxs = np.where(self.turns_dlg > seed_size)
+    def get_turn_idxs(self, pool_size, seed_size, sample_mode):
+        """Get a list of idxs into Dataset.turns by SS env.
+        Args:
+            pool_size: Num of (non-seed) idxs requested.
+            seed_size: Num of dialogues to reserve for seed turn idxs.
+            sample_mode: `singlepass` or `uniform`. Should idxs be sampled
+                         with or without replacement?
+        Returns:
+            all_idxs: Turn indices for training.
+            all_seed_idxs: Non-repeating turn indices reserved for seeding.
+            turn_idx_cap: 1 + maximum turn idx (number of turns from all
+                          dialogues).
+        """
+        # List of turn indices divided by dialogue index (first seed_size
+        # are reserved for seeding).
+        seed_idxs = np.where(self.turns_dlg < seed_size)[0]
+        orig_nonseed_idxs = np.where(self.turns_dlg >= seed_size)[0]
 
         if sample_mode == "singlepass":
-            selected_idxs = []
-            while len(selected_idxs) < pool_size:
-                selected_idxs.append(np.random.permutation(train_turn_idxs))
-            selected_idxs = np.concatenate(selected_idxs)[:pool_size]
+            # Grab permutations of nonseed_idxs until pool_size is hit.
+            nonseed_idxs = []
+            while len(nonseed_idxs) < pool_size:
+                nonseed_idxs.append(np.random.permutation(orig_nonseed_idxs))
+            nonseed_idxs = np.concatenate(nonseed_idxs)[:pool_size]
         elif sample_mode == "uniform":
-            selected_idxs = np.random.choice(train_turn_idxs, pool_size)
+            # Sample pool_size of nonseed_idxs with replacement.
+            nonseed_idxs = np.random.choice(orig_nonseed_idxs, pool_size)
         else:
             raise ValueError("ClassificationEnv: Invalid sample mode")
-        selected_idxs = np.concatenate((seed_turn_idxs, selected_idxs))
 
-        return selected_idxs, seed_turn_idxs, len(self.turns)
+        # Combine seed and training indices (first len(seed_idxs) are
+        # seeded).
+        all_idxs = np.concatenate((seed_idxs, nonseed_idxs))
+
+        return all_idxs, seed_idxs, len(self.turns)
 
     def __len__(self):
         return len(self.dialogues)
@@ -79,28 +110,53 @@ class Dataset:
         return Ontology(sorted(list(slots)),
                         {k: sorted(list(v)) for k, v in values.items()})
 
-    def batch(self, batch_size, indices=None, labels=None, shuffle=False):
-        if indices is None:
-            indices = np.arange(len(self.turns))
+    def batch(self, batch_size, idxs=None, labels=None, shuffle=False):
+        """Grab a batch of dialogue turns and labels
+        Args:
+            batch_size: batch size.
+            idxs: specify which turn indices are to be included. By default,
+                  all turns are included.
+            labels: provide competing labels (1:1 with self.turns_labels)
+            shuffle: should the ordering of turns be shuffled?
+        """
+        # Build array of relevant turn instances
+        if idxs is None:
+            idxs = np.arange(len(self.turns))
         if shuffle:
-            indices = np.random.permutation(indices)
+            idxs = np.random.permutation(idxs)
+        turns = self.turns[idxs]
 
-        turns = self.turns[indices]
-
+        # Build array of labels
         if labels is None:
-            labels = self.labels[indices]
+            labels = {s: v[idxs] for s, v in self.turns_labels.items()}
         else:
-            labels = labels[indices]
+            labels = {s: v[idxs] for s, v in labels.items()}
 
+        # Yield from our list of turns
         for i in tqdm(range(0, len(turns), batch_size)):
-            yield turns[i:i + batch_size], labels[i:i + batch_size]
+            yield turns[i:i + batch_size], {
+                s: v[i:i + batch_size] for s, v in labels.items()
+            }
 
-        if len(turns) % batch_size > 0:
-            yield turns[-len(turns) % batch_size:], labels[-len(turns) %
-                                                           batch_size:]
+        # Handle leftovers
+        leftover = len(turns) % batch_size
+        if leftover > 0:
+            yield turns[-leftover:], {
+                s: v[-leftover:] for s, v in labels.items()
+            }
 
-    def get_labels(self, indices):
-        return self.labels[indices]
+    def get_labels(self, idxs=None):
+        """Return requested labels
+        Args:
+            idxs: numpy array of turn idxs
+        Returns:
+            labels: turn labels (ground truth)
+        """
+        if idxs is None:
+            return self.turns_labels
+        return {
+            slot: values[idxs] for slot, values in self.turns_labels.items()
+        }
 
     def evaluate_preds(self, preds):
         request = []

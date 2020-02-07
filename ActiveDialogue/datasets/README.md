@@ -1,4 +1,7 @@
-# Download and annotate data
+# Datasets module
+
+## Installing and preprocessing data
+Instructions here borrowed from [GLAD's repository](https://github.com/salesforce/glad).
 
 This project uses Stanford CoreNLP to annotate the dataset.
 In particular, we use the [Stanford NLP Stanza python interface](https://github.com/stanfordnlp/stanza).
@@ -15,10 +18,10 @@ Subsequent runs will be much faster.
 python -m ActiveDialogue.datasets.woz.preprocess
 ```
 
-The raw data will be stored in `data/woz/raw` of the container.
-The annotation results will be stored in `data/woz/ann` of the container.
+## Supported Datasets
+Currently, the Woz restaurant corpus is supported. Multi-Woz support will be added soon.
 
-# Contribution
+## Structure
+We employ four primary datastructures: Dataset, Ontology, Dialogue and Turn. The primary logic is found in Dataset.
 
-Pull requests are welcome!
-If you have any questions, please create an issue or contact the corresponding author at `victor <at> victorzhong <dot> com`.
+Each dataset provides its own module with a `preprocess` script and a `wrapper` submodule. Only the `wrapper` is used in normal execution.
