@@ -26,6 +26,7 @@ class DSTEnv():
         self._test_dataset = datasets["test"]
         self._idxs, seed_idxs, num_turns = self._dataset.get_turn_idxs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
+        assert len(self._idxs) >= args.pool_size
 
         # Load model
         self._model = model_cls(args, self._ontology, vocab)
