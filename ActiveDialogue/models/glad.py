@@ -174,7 +174,7 @@ class GLAD(Model):
                                                         reduction='none').mul(
                                                             mask[s])
                     weight = torch.sum(mask[s], dim=1)**self.args.gamma
-                    loss += torch.mean(
+                    loss += torch.sum(
                         unweighted /
                         weight.unsqueeze(1).expand_as(unweighted))
                 else:
