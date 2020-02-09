@@ -24,3 +24,14 @@ def passive_baseline(pred):
     for key in pred.keys():
         label[key] = np.zeros(pred[key].shape)
     return label
+
+
+def epsilon_cheat(pred, true_labels):
+    rnd = random_singlets(pred)
+    for i in range(len(list(pred.values()))):
+        if random.random() > 0.5:
+            for s in rnd.keys():
+                rnd[s][i] = true_labels[s][i]
+    return rnd
+
+

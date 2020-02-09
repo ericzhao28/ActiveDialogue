@@ -34,7 +34,7 @@ class DSTEnv():
         self._model.load_emb(Eword)
         self._model = self._model.to(self._model.device)
 
-        # Support set, initialize masks and labels at -1
+        # Support set, initialize masks and labels
         self._used_labels = 0
         self._support_ptrs = set()
         self._support_masks = {}
@@ -43,9 +43,8 @@ class DSTEnv():
             self._support_masks[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])),
                 dtype=np.int32)
-            self._support_labels[s] = np.full(
+            self._support_labels[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])),
-                fill_value=-1,
                 dtype=np.int32)
 
         # Seed set: grab full labels and load into support set
@@ -75,6 +74,9 @@ class DSTEnv():
             return False
         self._model = self._model.to(self._model.device)
         return True
+
+    def leak_labels(self):
+        return self._dataset.get_labels(self.current_ptrs)
 
     def observe(self):
         """Grab observations and predictive distributions over batch"""
@@ -151,7 +153,9 @@ class DSTEnv():
         # Label!
         num_labels = len(label_idxs)
         if len(label_ptrs):
-            # Determine feedback
+            # Determine feedback: assume label guess is correct. For each
+            # query and slot, check that all values corresponding to label
+            # request have positive label.
             feedback = np.full(num_labels, fill_value=1, dtype=np.int32)
             for s in self._ontology.slots:
                 true_labels = self._dataset.get_labels(label_ptrs)[s]
@@ -160,7 +164,7 @@ class DSTEnv():
             # Apply labels
             for s in self._ontology.slots:
                 for i in range(num_labels):
-                    self._support_labels[s][label_ptrs[i]][label[s][i]] = feedback[i]
+                    self._support_labels[s][label_ptrs[i]][label[s][i]] = np.logical_or(self._support_labels[s][label_ptrs[i]][label[s][i]], feedback[i])  # default to possitive if not negative 1
                     self._support_masks[s][label_ptrs[i]][label[s][i]] = 1
             self._used_labels += num_labels
             self._support_ptrs = self._support_ptrs.union(set(label_ptrs))
