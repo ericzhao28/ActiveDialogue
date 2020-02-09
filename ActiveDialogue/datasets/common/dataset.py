@@ -26,7 +26,7 @@ class Dataset:
         self.dialogues = dialogues  # Dialogue objects
 
         # Build optionally shuffled list of turns and their corresponding
-        # labels and dialogue idxs.
+        # labels and dialogue ptrs.
         self.turns = []  # Turn objects
         self.turns_dlg = []  # dialogues corresponding to each turn
         for i, dlg in enumerate(dialogues):
@@ -46,47 +46,47 @@ class Dataset:
                 self.turns_labels[slot][i, ontology.values[slot].index(
                     value)] = 1
 
-    def get_turn_idxs(self, pool_size, seed_size, sample_mode):
-        """Get a list of idxs into Dataset.turns by SS env.
+    def get_turn_ptrs(self, pool_size, seed_size, sample_mode):
+        """Get a list of ptrs into Dataset.turns by SS env.
         Args:
-            pool_size: Num of (non-seed) idxs requested.
-            seed_size: Num of dialogues to reserve for seed turn idxs.
-            sample_mode: `singlepass` or `uniform`. Should idxs be sampled
+            pool_size: Num of (non-seed) ptrs requested.
+            seed_size: Num of dialogues to reserve for seed turn ptrs.
+            sample_mode: `singlepass` or `uniform`. Should ptrs be sampled
                          with or without replacement?
         Returns:
-            all_idxs: Turn idxs for training.
-            all_seed_idxs: Non-repeating turn idxs reserved for seeding.
-            turn_idx_cap: 1 + maximum turn idx (number of turns from all
+            all_ptrs: Turn ptrs for training.
+            all_seed_ptrs: Non-repeating turn ptrs reserved for seeding.
+            turn_ptr_cap: 1 + maximum turn ptr (number of turns from all
                           dialogues).
         """
         if seed_size >= len(self.dialogues):
             raise ValueError()
 
-        # List of turn idxs divided by dialogue index (first seed_size
+        # List of turn ptrs divided by dialogue index (first seed_size
         # are reserved for seeding).
-        seed_idxs = np.where(self.turns_dlg < seed_size)[0]
-        orig_nonseed_idxs = np.where(self.turns_dlg >= seed_size)[0]
-        assert len(seed_idxs) >= seed_size
-        assert len(orig_nonseed_idxs) > 0
+        seed_ptrs = np.where(self.turns_dlg < seed_size)[0]
+        orig_nonseed_ptrs = np.where(self.turns_dlg >= seed_size)[0]
+        assert len(seed_ptrs) >= seed_size
+        assert len(orig_nonseed_ptrs) > 0
 
         if sample_mode == "singlepass":
-            # Grab permutations of nonseed_idxs until pool_size is hit.
-            nonseed_idxs = []
-            for i in range(0, pool_size + len(orig_nonseed_idxs), len(orig_nonseed_idxs)):
-                nonseed_idxs.append(np.random.permutation(orig_nonseed_idxs))
-            nonseed_idxs = np.concatenate(nonseed_idxs)[:pool_size]
-            assert len(nonseed_idxs) == pool_size
+            # Grab permutations of nonseed_ptrs until pool_size is hit.
+            nonseed_ptrs = []
+            for i in range(0, pool_size + len(orig_nonseed_ptrs), len(orig_nonseed_ptrs)):
+                nonseed_ptrs.append(np.random.permutation(orig_nonseed_ptrs))
+            nonseed_ptrs = np.concatenate(nonseed_ptrs)[:pool_size]
+            assert len(nonseed_ptrs) == pool_size
         elif sample_mode == "uniform":
-            # Sample pool_size of nonseed_idxs with replacement.
-            nonseed_idxs = np.random.choice(orig_nonseed_idxs, pool_size)
+            # Sample pool_size of nonseed_ptrs with replacement.
+            nonseed_ptrs = np.random.choice(orig_nonseed_ptrs, pool_size)
         else:
             raise ValueError("ClassificationEnv: Invalid sample mode")
 
-        # Combine seed and training idxs (first len(seed_idxs) are
+        # Combine seed and training ptrs (first len(seed_ptrs) are
         # seeded).
-        all_idxs = np.concatenate((seed_idxs, nonseed_idxs))
+        all_ptrs = np.concatenate((seed_ptrs, nonseed_ptrs))
 
-        return all_idxs, seed_idxs, len(self.turns)
+        return all_ptrs, seed_ptrs, len(self.turns)
 
     def __len__(self):
         return len(self.dialogues)
@@ -119,63 +119,51 @@ class Dataset:
         return Ontology(sorted(list(slots)),
                         {k: sorted(list(v)) for k, v in values.items()})
 
-    def batch(self, batch_size, idxs=None, labels=None, shuffle=False, give_idxs=False):
+    def batch(self, batch_size, ptrs=None, labels=None, shuffle=False, give_ptrs=False):
         """Grab a batch of dialogue turns and labels
         Args:
             batch_size: batch size.
-            idxs: specify which turn idxs are to be included. By default,
+            ptrs: specify which turn ptrs are to be included. By default,
                   all turns are included.
             labels: provide competing labels (1:1 with self.turns_labels)
             shuffle: should the ordering of turns be shuffled?
         """
         # Build array of relevant turn instances
-        if idxs is None:
-            idxs = np.arange(len(self.turns))
+        if ptrs is None:
+            ptrs = np.arange(len(self.turns))
         if shuffle:
-            idxs = np.random.permutation(idxs)
-        turns = self.turns[idxs]
+            ptrs = np.random.permutation(ptrs)
+        turns = self.turns[ptrs]
 
         # Build array of labels
         if labels is None:
-            labels = {s: v[idxs] for s, v in self.turns_labels.items()}
+            labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
         else:
-            labels = {s: v[idxs] for s, v in labels.items()}
+            labels = {s: v[ptrs] for s, v in labels.items()}
 
         # Yield from our list of turns
         for i in tqdm(range(0, len(turns), batch_size)):
-            if give_idxs:
+            if give_ptrs:
                 yield turns[i:i + batch_size], {
                     s: v[i:i + batch_size] for s, v in labels.items()
-                    }, idxs[i:i+batch_size]
+                    }, ptrs[i:i+batch_size]
             else:
                 yield turns[i:i + batch_size], {
                     s: v[i:i + batch_size] for s, v in labels.items()
                 }
 
-        # Handle leftovers
-        leftover = len(turns) % batch_size
-        if leftover > 0:
-            if give_idxs:
-                yield turns[-leftover:], {
-                    s: v[-leftover:] for s, v in labels.items()
-                    }, idxs[-leftover:]
-            else:
-                yield turns[-leftover:], {
-                    s: v[-leftover:] for s, v in labels.items()
-                }
 
-
-    def get_labels(self, idxs=None):
+    def get_labels(self, ptrs=None):
         """Return requested labels
         Args:
-            idxs: numpy array of turn idxs
+            ptrs: numpy array of turn ptrs
         Returns:
             labels: turn labels (ground truth)
         """
-        if idxs is None:
+        if ptrs is None:
             return self.turns_labels
         return {
-            slot: values[idxs] for slot, values in self.turns_labels.items()
+            slot: values[ptrs] for slot, values in self.turns_labels.items()
         }
 
     def evaluate_preds(self, preds):

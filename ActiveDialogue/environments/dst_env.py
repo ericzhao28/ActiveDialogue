@@ -25,9 +25,9 @@ class DSTEnv():
         datasets, self._ontology, vocab, Eword = load_dataset()
         self._dataset = datasets["train"]
         self._test_dataset = datasets["dev"]
-        self._idxs, seed_idxs, num_turns = self._dataset.get_turn_idxs(
+        self._ptrs, seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
-        assert len(self._idxs) >= args.pool_size
+        assert len(self._ptrs) >= args.pool_size
 
         # Load model
         self._model = model_cls(args, self._ontology, vocab)
@@ -36,10 +36,9 @@ class DSTEnv():
 
         # Support set, initialize masks and labels at -1
         self._used_labels = 0
-        self._support_idxs = set()
-        self._latest_support_idxs = []
-        self._support_labels = {}
+        self._support_ptrs = set()
         self._support_masks = {}
+        self._support_labels = {}
         for s in self._ontology.slots:
             self._support_masks[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])),
@@ -50,12 +49,12 @@ class DSTEnv():
                 dtype=np.int32)
 
         # Seed set: grab full labels and load into support set
-        seed_labels = self._dataset.get_labels(seed_idxs)
-        self._support_idxs = set(seed_idxs)
+        seed_labels = self._dataset.get_labels(seed_ptrs)
+        self._support_ptrs = set(seed_ptrs)
         if args.seed_size:
             for s in self._ontology.slots:
-                self._support_labels[s][seed_idxs, :] = seed_labels[s]
-                self._support_masks[s][seed_idxs, :] = 1
+                self._support_labels[s][seed_ptrs, :] = seed_labels[s]
+                self._support_masks[s][seed_ptrs, :] = 1
             print("Seeding")
             if not self.load_seed():
                 self.train_seed()
@@ -83,7 +82,7 @@ class DSTEnv():
         preds = {}
         self._model.eval()
         for batch, _ in self._dataset.batch(batch_size=self._args.batch_size,
-                                            idxs=self.current_idxs,
+                                            ptrs=self.current_ptrs,
                                             shuffle=False):
             batch_preds = self._model.forward(batch)[1]
             if not preds:
@@ -92,9 +91,12 @@ class DSTEnv():
             for s in batch_preds.keys():
                 preds[s].append(batch_preds[s])
             obs.append(batch)
-        return np.concatenate(obs), {
+        obs = np.concatenate(obs)
+        preds = {
             s: np.concatenate(v) for s, v in preds.items()
         }
+        assert all([len(v) == self._args.al_batch for v in preds.values()])
+        return obs, preds
 
     def metrics(self, run_eval=False):
         metrics = {
@@ -113,9 +115,9 @@ class DSTEnv():
         return self._current_idx >= self._args.pool_size
 
     @property
-    def current_idxs(self):
+    def current_ptrs(self):
         """Expand current_idx into an array of currently occupied idxs"""
-        return self._idxs[np.arange(
+        return self._ptrs[np.arange(
             self._current_idx,
             min(self._current_idx + self._args.al_batch,
                 self._args.pool_size - 1))]
@@ -130,36 +132,37 @@ class DSTEnv():
 
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
-        legal = []
+        label_idxs = []
         for s in self._ontology.slots:
-            legal.append(np.where(np.any(label[s], axis=1))[0])
-        label_subidxs = np.unique(np.concatenate(legal))
+            label_idxs.append(np.where(np.any(label[s], axis=1))[0])
+        label_idxs = np.unique(np.concatenate(label_idxs))
 
-        # Cut label subidxs by remaining label budget...
-        if self._args.label_budget < len(label_subidxs) + self._used_labels:
-            label_subidxs = label_subidxs[:max(
+        # Cut label idxs by remaining label budget...
+        if self._args.label_budget < len(label_idxs) + self._used_labels:
+            label_idxs = label_idxs[:max(
                 0, self._args.label_budget - self._used_labels)]
         for s, v in label.items():
-            label[s] = label[s][label_subidxs]
-        label_idxs = self.current_idxs[label_subidxs]
-        self._latest_support_idxs = label_idxs
+            label[s] = label[s][label_idxs]
 
         # Label!
-        print(label[s])
-        if len(label_idxs):
+        label_ptrs = self.current_ptrs[label_idxs]
+        num_labels = len(label_idxs)
+        if len(label_ptrs):
             # Determine feedback
-            feedback = True
+            feedback = np.full(num_labels, fill_value=1, dtype=np.int32)
             for s in self._ontology.slots:
-                feedback = feedback and np.all(
-                    self._dataset.get_labels(label_idxs)[s][label[s]] == 1)
+                true_labels = self._dataset.get_labels(label_ptrs)[s]
+                for i in range(num_labels):
+                    feedback[i] = feedback[i] and np.all(true_labels[i][label[s][i]])
             # Apply labels
             for s in self._ontology.slots:
-                self._support_labels[s][label_idxs][label[s]] = (
-                    1 if feedback else 0)
-                self._support_masks[s][label_idxs][label[s]] = 1
-            self._used_labels += len(label)
-            self._support_idxs = self._support_idxs.union(set(label_idxs))
+                for i in range(num_labels):
+                    self._support_labels[s][label_ptrs][i][label[s][i]] = feedback[i]
+                    self._support_masks[s][label_ptrs][i][label[s][i]] = 1
+            self._used_labels += num_labels
+            self._support_ptrs = self._support_ptrs.union(set(label_ptrs))
             return True
+
         return False
 
     def fit(self, epochs=None):
@@ -174,27 +177,22 @@ class DSTEnv():
         for epoch in range(epochs):
             print('starting epoch {}'.format(epoch))
 
-            support_idxs = np.array(list(self._support_idxs))
-            support_idxs = support_idxs[np.random.permutation(np.arange(support_idxs.shape[0]))][:self._args.fit_items]
-            if len(self._latest_support_idxs) and self._args.recency_bias:
-                idxs = np.concatenate((support_idxs,
-                                       np.repeat(self._latest_support_idxs,
-                                                 self._args.recency_bias)))
-            else:
-                idxs = support_idxs
-            print("Fitting on {} viable turns.".format(len(idxs)))
+            support_ptrs = np.array(list(self._support_ptrs))
+            support_ptrs = support_ptrs[np.random.permutation(np.arange(support_ptrs.shape[0]))][:self._args.fit_items]
+            print("Fitting on {} viable turns.".format(len(support_ptrs)))
 
             # train and update parameters
-            for batch, batch_labels, batch_idxs in self._dataset.batch(
+            for batch, batch_labels, batch_ptrs in self._dataset.batch(
                     batch_size=self._args.batch_size,
-                    idxs=np.array(idxs, dtype=np.int32),
+                    ptrs=np.array(support_ptrs, dtype=np.int32),
                     labels={
-                        s: np.maximum(v, 0)
+                        s: np.maximum(v, 0, dtype=np.float32)
                         for s, v in self._support_labels.items()
                     },
-                    shuffle=True, give_idxs=True):
+                    shuffle=True, give_ptrs=True):
 
-                mask = {s: v[batch_idxs] for s, v in self._support_masks.items()}
+                assert all([np.all(v >= 0) for v in batch_labels.values()])
+                mask = {s: np.array(v[batch_ptrs], dtype=np.float32) for s, v in self._support_masks.items()}
                 iteration += 1
                 self._model.zero_grad()
                 loss, scores = self._model.forward(
