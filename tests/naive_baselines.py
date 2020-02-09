@@ -12,10 +12,10 @@ for i in range(100):
     x = naive_baselines.random_singlets(example_pred)
     for v in x.values():
         for j in range(len(v)):
-            assert len(np.where(v[j] != -1)) <= 1
-            if np.any(v[j] != -1):
+            assert len(np.where(v[j])) <= 1
+            if np.any(v[j]):
                 labeled[j] += 1
     assert np.all(labeled == np.ones_like(labeled))
 
     for v in naive_baselines.passive_baseline(example_pred).values():
-        assert np.all(v == -1)
+        assert not np.any(v)

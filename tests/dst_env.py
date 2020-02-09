@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--device', type=int, default=None)
     parser.add_argument('--seed_epochs', type=int, default=1)
     parser.add_argument('--al_batch', type=int, default=128)
+    parser.add_argument('--fit_items', type=int, default=128)
     parser.add_argument('--pool_size', type=int, default=256)
     parser.add_argument('--seed_size', type=int, default=50)
     parser.add_argument('--sample_mode', type=str, default="singlepass")

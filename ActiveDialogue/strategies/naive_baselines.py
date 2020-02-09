@@ -22,5 +22,5 @@ def random_singlets(pred):
 def passive_baseline(pred):
     label = {}
     for key in pred.keys():
-        label[key] = np.zeros(pred[key])
+        label[key] = np.zeros(pred[key].shape)
     return label

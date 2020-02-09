@@ -95,8 +95,6 @@ class DSTEnv():
         preds = {
             s: np.concatenate(v) for s, v in preds.items()
         }
-        assert all([len(v) == self._args.al_batch for v in preds.values()])
-        assert len(obs) == self._args.al_batch
         return obs, preds
 
     def metrics(self, run_eval=False):
@@ -203,8 +201,9 @@ class DSTEnv():
                 assert all([np.all(v >= 0) for v in mask.values()])
                 assert all([np.all(v <= 1) for v in mask.values()])
                 assert not any([np.all(v == -1) for v in mask.values()])
-                assert mask.shape == batch_labels.shape
-                assert mask.dtype == batch_labels.dtype
+                for s in self._support_masks.keys():
+                    assert mask[s].shape == batch_labels[s].shape
+                    assert mask[s].dtype == batch_labels[s].dtype
                 iteration += 1
                 self._model.zero_grad()
                 loss, scores = self._model.forward(
