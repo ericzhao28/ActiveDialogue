@@ -96,6 +96,7 @@ class DSTEnv():
             s: np.concatenate(v) for s, v in preds.items()
         }
         assert all([len(v) == self._args.al_batch for v in preds.values()])
+        assert len(obs) == self._args.al_batch
         return obs, preds
 
     def metrics(self, run_eval=False):
@@ -133,19 +134,23 @@ class DSTEnv():
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
         label_idxs = []
-        for s in self._ontology.slots:
-            label_idxs.append(np.where(np.any(label[s], axis=1))[0])
-        label_idxs = np.unique(np.concatenate(label_idxs))
+        for i in range(len(label)):
+            for s in self._ontology.slots:
+                if np.any(label[s][i]):
+                    label_idxs.append(i)
+                    break
 
         # Cut label idxs by remaining label budget...
         if self._args.label_budget < len(label_idxs) + self._used_labels:
             label_idxs = label_idxs[:max(
                 0, self._args.label_budget - self._used_labels)]
+
+        # Grab ptrs and labels that are valid
         for s, v in label.items():
             label[s] = label[s][label_idxs]
+        label_ptrs = self.current_ptrs[label_idxs]
 
         # Label!
-        label_ptrs = self.current_ptrs[label_idxs]
         num_labels = len(label_idxs)
         if len(label_ptrs):
             # Determine feedback
@@ -191,8 +196,15 @@ class DSTEnv():
                     },
                     shuffle=True, give_ptrs=True):
 
-                assert all([np.all(v >= 0) for v in batch_labels.values()])
                 mask = {s: np.array(v[batch_ptrs], dtype=np.float32) for s, v in self._support_masks.items()}
+                assert all([np.all(v >= 0) for v in batch_labels.values()])
+                assert all([np.all(v <= 1) for v in batch_labels.values()])
+                assert not any([np.all(v == -1) for v in batch_labels.values()])
+                assert all([np.all(v >= 0) for v in mask.values()])
+                assert all([np.all(v <= 1) for v in mask.values()])
+                assert not any([np.all(v == -1) for v in mask.values()])
+                assert mask.shape == batch_labels.shape
+                assert mask.dtype == batch_labels.dtype
                 iteration += 1
                 self._model.zero_grad()
                 loss, scores = self._model.forward(

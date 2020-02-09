@@ -53,7 +53,7 @@ def main():
         os.makedirs(args.dout)
 
     datasets, ontology, vocab, E = load_dataset()
-    idxs, seed_idxs, num_turns = datasets["train"].get_turn_idxs(
+    ptrs, seed_ptrs, num_turns = datasets["train"].get_turn_ptrs(
         100, 0, sample_mode="singlepass")
 
     if args.model == "glad":
@@ -73,7 +73,7 @@ def main():
         # train and update parameters
         for batch, batch_labels in datasets["train"].batch(
                 batch_size=args.batch_size,
-                idxs=idxs,
+                ptrs=ptrs,
                 labels=datasets["train"].get_labels(),
                 shuffle=True):
             iteration += 1
