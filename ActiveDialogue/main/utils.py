@@ -47,6 +47,7 @@ def get_args():
                         nargs='*',
                         help='dropout rates',
                         default=['emb=0.2', 'local=0.2', 'global=0.2'])
+    parser.set_defaults(device=None)
 
     args = parser.parse_args()
     args.dout = os.path.join(args.dexp, args.model, args.nick)

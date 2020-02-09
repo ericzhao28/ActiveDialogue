@@ -155,7 +155,7 @@ class GLAD(Model):
             y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
 
             # combine the scores
-            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts)
+            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts).to(self.device)
 
         if training:
             labels = {
@@ -168,12 +168,12 @@ class GLAD(Model):
 
             loss = 0
             for s in self.ontology.slots:
-                if mask:
+                if True:
                     unweighted = F.binary_cross_entropy(ys[s],
                                                         labels[s],
-                                                        reduction='none').mul(
-                                                            mask[s])
-                    weight = torch.sum(mask[s], dim=1)**self.args.gamma
+                                                        reduction='none')
+                    unweighted = unweighted.mul(mask[s])
+                    weight = torch.pow(torch.sum(mask[s], dim=1), self.args.gamma)
                     loss += torch.sum(
                         unweighted /
                         weight.unsqueeze(1).expand_as(unweighted))

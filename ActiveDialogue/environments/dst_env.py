@@ -160,8 +160,8 @@ class DSTEnv():
             # Apply labels
             for s in self._ontology.slots:
                 for i in range(num_labels):
-                    self._support_labels[s][label_ptrs][i][label[s][i]] = feedback[i]
-                    self._support_masks[s][label_ptrs][i][label[s][i]] = 1
+                    self._support_labels[s][label_ptrs[i]][label[s][i]] = feedback[i]
+                    self._support_masks[s][label_ptrs[i]][label[s][i]] = 1
             self._used_labels += num_labels
             self._support_ptrs = self._support_ptrs.union(set(label_ptrs))
             return True
@@ -169,6 +169,13 @@ class DSTEnv():
         return False
 
     def fit(self, epochs=None):
+        support_ptrs = np.array(list(self._support_ptrs))
+        for i in range(len(self._support_ptrs)):
+            valid = False
+            for s in self._support_masks.keys():
+                valid = valid or np.any(self._support_masks[s][support_ptrs[i]])
+            assert valid
+
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
@@ -195,15 +202,6 @@ class DSTEnv():
                     shuffle=True, give_ptrs=True):
 
                 mask = {s: np.array(v[batch_ptrs], dtype=np.float32) for s, v in self._support_masks.items()}
-                assert all([np.all(v >= 0) for v in batch_labels.values()])
-                assert all([np.all(v <= 1) for v in batch_labels.values()])
-                assert not any([np.all(v == -1) for v in batch_labels.values()])
-                assert all([np.all(v >= 0) for v in mask.values()])
-                assert all([np.all(v <= 1) for v in mask.values()])
-                assert not any([np.all(v == -1) for v in mask.values()])
-                for s in self._support_masks.keys():
-                    assert mask[s].shape == batch_labels[s].shape
-                    assert mask[s].dtype == batch_labels[s].dtype
                 iteration += 1
                 self._model.zero_grad()
                 loss, scores = self._model.forward(
