@@ -22,8 +22,7 @@ def main():
             raw_obs, obs_dist = env.observe()
             env.label(random_singlets(obs_dist))
             ended = env.step()
-            if i % 2 == 0:
-                env.fit()
+            env.fit()
             for k, v in env.metrics(i % args.eval_period == 1).items():
                 logger.log_metric(k, v, step=i)
 

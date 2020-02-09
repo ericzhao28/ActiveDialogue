@@ -20,7 +20,8 @@ def main():
             logger.log_current_epoch(i)
             raw_obs, obs_dist = env.observe()
             ended = env.step()
-            for k, v in env.metrics(i % args.eval_period == 0).items():
+            env.fit()
+            for k, v in env.metrics(i % args.eval_period == 1).items():
                 logger.log_metric(k, v, step=i)
 
 

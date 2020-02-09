@@ -24,7 +24,7 @@ class DSTEnv():
         # Select train/test/val dataset split
         datasets, self._ontology, vocab, Eword = load_dataset()
         self._dataset = datasets["train"]
-        self._test_dataset = datasets["test"]
+        self._test_dataset = datasets["dev"]
         self._idxs, seed_idxs, num_turns = self._dataset.get_turn_idxs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
         assert len(self._idxs) >= args.pool_size
@@ -168,7 +168,7 @@ class DSTEnv():
 
             support_idxs = np.array(list(self._support_idxs))
             support_idxs = support_idxs[np.random.permutation(np.arange(support_idxs.shape[0]))][:self._args.fit_items]
-            if len(self._latest_support_idxs):
+            if len(self._latest_support_idxs) and self._args.recency_bias:
                 idxs = np.concatenate((support_idxs,
                                        np.repeat(self._latest_support_idxs,
                                                  self._args.recency_bias)))
