@@ -39,7 +39,11 @@ class DSTEnv():
         self._support_idxs = set()
         self._latest_support_idxs = []
         self._support_labels = {}
+        self._support_masks = {}
         for s in self._ontology.slots:
+            self._support_masks[s] = np.zeros(
+                (num_turns, len(self._ontology.values[s])),
+                dtype=np.int32)
             self._support_labels[s] = np.full(
                 (num_turns, len(self._ontology.values[s])),
                 fill_value=-1,
@@ -51,6 +55,7 @@ class DSTEnv():
         if args.seed_size:
             for s in self._ontology.slots:
                 self._support_labels[s][seed_idxs, :] = seed_labels[s]
+                self._support_masks[s][seed_idxs, :] = 1
             print("Seeding")
             if not self.load_seed():
                 self.train_seed()
@@ -117,6 +122,8 @@ class DSTEnv():
 
     def label(self, label):
         """Label current batch of data"""
+        label = {s: np.array(v, dtype=np.int32) for s, v in label.items()}
+
         # No more labeling allowed
         if self._args.label_budget <= self._used_labels:
             return False
@@ -125,7 +132,7 @@ class DSTEnv():
         # any turn with any non-trivial label
         legal = []
         for s in self._ontology.slots:
-            legal.append(np.where(np.any(label[s] != -1, axis=1))[0])
+            legal.append(np.where(np.any(label[s], axis=1))[0])
         label_subidxs = np.unique(np.concatenate(legal))
 
         # Cut label subidxs by remaining label budget...
@@ -138,17 +145,18 @@ class DSTEnv():
         self._latest_support_idxs = label_idxs
 
         # Label!
+        print(label[s])
         if len(label_idxs):
             # Determine feedback
             feedback = True
             for s in self._ontology.slots:
                 feedback = feedback and np.all(
-                    self._dataset.get_labels(label_idxs)[s][label[s] != -1] ==
-                    label[s][label[s] != -1])
+                    self._dataset.get_labels(label_idxs)[s][label[s]] == 1)
             # Apply labels
             for s in self._ontology.slots:
-                self._support_labels[s][label_idxs][label[s] != -1] = (
+                self._support_labels[s][label_idxs][label[s]] = (
                     1 if feedback else 0)
+                self._support_masks[s][label_idxs][label[s]] = 1
             self._used_labels += len(label)
             self._support_idxs = self._support_idxs.union(set(label_idxs))
             return True
@@ -177,22 +185,22 @@ class DSTEnv():
             print("Fitting on {} viable turns.".format(len(idxs)))
 
             # train and update parameters
-            for batch, batch_labels in self._dataset.batch(
+            for batch, batch_labels, batch_idxs in self._dataset.batch(
                     batch_size=self._args.batch_size,
                     idxs=np.array(idxs, dtype=np.int32),
                     labels={
                         s: np.maximum(v, 0)
                         for s, v in self._support_labels.items()
                     },
-                    shuffle=True):
+                    shuffle=True, give_idxs=True):
+
+                mask = {s: v[batch_idxs] for s, v in self._support_masks.items()}
                 iteration += 1
                 self._model.zero_grad()
                 loss, scores = self._model.forward(
                     batch,
                     batch_labels,
-                    mask={
-                        s: np.array(v != -1) for s, v in batch_labels.items()
-                    },
+                    mask=mask,
                     training=True)
                 loss.backward()
                 self._model.optimizer.step()

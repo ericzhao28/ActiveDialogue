@@ -119,7 +119,7 @@ class Dataset:
         return Ontology(sorted(list(slots)),
                         {k: sorted(list(v)) for k, v in values.items()})
 
-    def batch(self, batch_size, idxs=None, labels=None, shuffle=False):
+    def batch(self, batch_size, idxs=None, labels=None, shuffle=False, give_idxs=False):
         """Grab a batch of dialogue turns and labels
         Args:
             batch_size: batch size.
@@ -143,16 +143,27 @@ class Dataset:
 
         # Yield from our list of turns
         for i in tqdm(range(0, len(turns), batch_size)):
-            yield turns[i:i + batch_size], {
-                s: v[i:i + batch_size] for s, v in labels.items()
-            }
+            if give_idxs:
+                yield turns[i:i + batch_size], {
+                    s: v[i:i + batch_size] for s, v in labels.items()
+                    }, idxs[i:i+batch_size]
+            else:
+                yield turns[i:i + batch_size], {
+                    s: v[i:i + batch_size] for s, v in labels.items()
+                }
 
         # Handle leftovers
         leftover = len(turns) % batch_size
         if leftover > 0:
-            yield turns[-leftover:], {
-                s: v[-leftover:] for s, v in labels.items()
-            }
+            if give_idxs:
+                yield turns[-leftover:], {
+                    s: v[-leftover:] for s, v in labels.items()
+                    }, idxs[-leftover:]
+            else:
+                yield turns[-leftover:], {
+                    s: v[-leftover:] for s, v in labels.items()
+                }
+
 
     def get_labels(self, idxs=None):
         """Return requested labels
