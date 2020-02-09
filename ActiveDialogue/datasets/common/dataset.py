@@ -75,7 +75,7 @@ class Dataset:
             for i in range(0, pool_size + len(orig_nonseed_idxs), len(orig_nonseed_idxs)):
                 nonseed_idxs.append(np.random.permutation(orig_nonseed_idxs))
             nonseed_idxs = np.concatenate(nonseed_idxs)[:pool_size]
-            assert len nonseed_idxs == pool_size
+            assert len(nonseed_idxs) == pool_size
         elif sample_mode == "uniform":
             # Sample pool_size of nonseed_idxs with replacement.
             nonseed_idxs = np.random.choice(orig_nonseed_idxs, pool_size)

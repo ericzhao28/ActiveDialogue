@@ -7,12 +7,13 @@ def get_args():
 
     parser.add_argument("--seed", type=int, default=28)
     parser.add_argument('--device', type=int, default=0)
-    parser.add_argument('--al_batch', type=int, default=128)
+    parser.add_argument('--al_batch', type=int, default=512)
     parser.add_argument('--pool_size', type=int, default=30000)
-    parser.add_argument('--label_budget', type=int, default=1000)
+    parser.add_argument('--label_budget', type=int, default=100000)
     parser.add_argument('--seed_size', type=int, default=200)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
-    parser.add_argument('--recency_bias', type=int, default=3)
+    parser.add_argument('--recency_bias', type=int, default=1)
+    parser.add_argument('--fit_items', type=int, default=512)
     parser.add_argument('--eval_period', type=int, default=8)
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
@@ -32,7 +33,7 @@ def get_args():
     parser.add_argument('--gamma', type=float, default=0.2)
     parser.add_argument('--lr',
                         help='learning rate',
-                        default=1e-3,
+                        default=2e-3,
                         type=float)
     parser.add_argument('--stop',
                         help='slot to early stop on',

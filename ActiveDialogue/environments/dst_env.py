@@ -19,6 +19,7 @@ class DSTEnv():
 
         self._args = args
         self._current_idx = 0
+        self._old_metrics = {}
 
         # Select train/test/val dataset split
         datasets, self._ontology, vocab, Eword = load_dataset()
@@ -75,6 +76,7 @@ class DSTEnv():
         """Grab observations and predictive distributions over batch"""
         obs = []
         preds = {}
+        self._model.eval()
         for batch, _ in self._dataset.batch(batch_size=self._args.batch_size,
                                             idxs=self.current_idxs,
                                             shuffle=False):
@@ -96,7 +98,9 @@ class DSTEnv():
         }
         if run_eval:
             metrics.update(self.eval())
-        return metrics
+            print(metrics)
+        self._old_metrics.update(metrics)
+        return self._old_metrics
 
     def step(self):
         """Step forward the current idx in the self._idxs path"""
@@ -122,18 +126,19 @@ class DSTEnv():
         legal = []
         for s in self._ontology.slots:
             legal.append(np.where(np.any(label[s] != -1, axis=1))[0])
-        label_subidxs = np.unique(np.conatenate(legal))
+        label_subidxs = np.unique(np.concatenate(legal))
 
         # Cut label subidxs by remaining label budget...
         if self._args.label_budget < len(label_subidxs) + self._used_labels:
             label_subidxs = label_subidxs[:max(
                 0, self._args.label_budget - self._used_labels)]
-        label = label[label_subidxs]
+        for s, v in label.items():
+            label[s] = label[s][label_subidxs]
         label_idxs = self.current_idxs[label_subidxs]
         self._latest_support_idxs = label_idxs
 
         # Label!
-        if label_idxs:
+        if len(label_idxs):
             # Determine feedback
             feedback = True
             for s in self._ontology.slots:
@@ -150,23 +155,26 @@ class DSTEnv():
         return False
 
     def fit(self, epochs=None):
-        print("Fitting on {} viable turns.".format(len(self._support_idxs)))
-        if self._latest_support_idxs:
-            idxs = np.concatenate((self._support_idxs,
-                                   np.repeat(self._latest_support_idxs,
-                                             self._args.recency_bias)))
-        else:
-            idxs = list(self._support_idxs)
-
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
         iteration = 0
         if not epochs:
-            epochs = self._args_epochs
+            epochs = self._args.epochs
+        self._model.train()
         print("Training for {} epochs starting now.".format(epochs))
         for epoch in range(epochs):
             print('starting epoch {}'.format(epoch))
+
+            support_idxs = np.array(list(self._support_idxs))
+            support_idxs = support_idxs[np.random.permutation(np.arange(support_idxs.shape[0]))][:self._args.fit_items]
+            if len(self._latest_support_idxs):
+                idxs = np.concatenate((support_idxs,
+                                       np.repeat(self._latest_support_idxs,
+                                                 self._args.recency_bias)))
+            else:
+                idxs = support_idxs
+            print("Fitting on {} viable turns.".format(len(idxs)))
 
             # train and update parameters
             for batch, batch_labels in self._dataset.batch(
@@ -191,4 +199,5 @@ class DSTEnv():
 
     def eval(self):
         logging.info('Running dev evaluation')
+        self._model.eval()
         return self._model.run_eval(self._test_dataset, self._args)
