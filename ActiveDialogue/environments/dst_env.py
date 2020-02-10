@@ -124,6 +124,7 @@ class DSTEnv():
     def label(self, label):
         """Label current batch of data"""
         label = {s: np.array(v, dtype=np.int32) for s, v in label.items()}
+        batch_size = len(list(label.values())[0])
 
         # No more labeling allowed
         if self._args.label_budget <= self._used_labels:
@@ -132,16 +133,18 @@ class DSTEnv():
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
         label_idxs = []
-        for i in range(len(label)):
+        for i in range(batch_size):
             for s in self._ontology.slots:
                 if np.any(label[s][i]):
                     label_idxs.append(i)
                     break
 
         # Cut label idxs by remaining label budget...
-        if self._args.label_budget < len(label_idxs) + self._used_labels:
+        num_labels = len(label_idxs)
+        if self._args.label_budget < num_labels + self._used_labels:
             label_idxs = label_idxs[:max(
                 0, self._args.label_budget - self._used_labels)]
+        num_labels = len(label_idxs)
 
         # Grab ptrs and labels that are valid
         for s, v in label.items():
@@ -149,7 +152,6 @@ class DSTEnv():
         label_ptrs = self.current_ptrs[label_idxs]
 
         # Label!
-        num_labels = len(label_idxs)
         if len(label_ptrs):
             # Determine feedback: assume label guess is correct. For each
             # query and slot, check that all values corresponding to label
@@ -158,12 +160,13 @@ class DSTEnv():
             for s in self._ontology.slots:
                 true_labels = self._dataset.get_labels(label_ptrs)[s]
                 for i in range(num_labels):
-                    feedback[i] = feedback[i] and np.all(true_labels[i][label[s][i]])
+                    feedback[i] = feedback[i] and np.all(true_labels[i][np.where(label[s][i])])
             # Apply labels
             for s in self._ontology.slots:
                 for i in range(num_labels):
-                    self._support_labels[s][label_ptrs[i]][label[s][i]] = np.logical_or(self._support_labels[s][label_ptrs[i]][label[s][i]], feedback[i])  # default to possitive if not negative 1
-                    self._support_masks[s][label_ptrs[i]][label[s][i]] = 1
+                    current_label = self._support_labels[s][label_ptrs[i]][np.where(label[s][i])]
+                    self._support_labels[s][label_ptrs[i]][np.where(label[s][i])] = np.logical_or(current_label, feedback[i])  # default to positive if not negative 1
+                    self._support_masks[s][label_ptrs[i]][np.where(label[s][i])] = 1
             self._used_labels += num_labels
             self._support_ptrs = self._support_ptrs.union(set(label_ptrs))
             return True
