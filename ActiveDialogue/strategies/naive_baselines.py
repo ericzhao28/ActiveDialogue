@@ -19,7 +19,7 @@ def random_singlets(pred):
     return label
 
 
-def passive_baseline(pred):
+def passive(pred):
     label = {}
     for key in pred.keys():
         label[key] = np.zeros(pred[key].shape)
@@ -30,7 +30,7 @@ def epsilon_cheat(pred, true_labels):
     rnd = random_singlets(pred)
     batch_size = len(list(pred.values())[0])
     for i in range(batch_size):
-        if random.random() > 0.5:
+        if random.random() > 0.8:
             for s in rnd.keys():
                 rnd[s][i] = true_labels[s][i]
     return rnd

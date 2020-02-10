@@ -18,6 +18,8 @@ def get_args():
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--epochs', type=int, default=1)
     parser.add_argument('--seed_epochs', type=int, default=40)
+    parser.add_argument('--strategy', type=str, default="")
+    parser.add_argument('--label_timeout', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--dexp',
                         help='root experiment folder',
