@@ -1,2 +1,4 @@
 # python3 -m ActiveDialogue.main.$1 --label_budget=1000000 --seed 34 --al_batch 4096 --fit_items 2048 --batch_size 128 --eval_period 2 --recency_bias 0
-python3 -m ActiveDialogue.main.naive_baselines --strategy $1 --label_timeout 45 --label_budget=1000000 --pool_size=10000 --al_batch 2048 --fit_items 2048 --batch_size 128 --eval_period 1 --recency_bias 0 --seed 9 --seed_size 0 --epochs 1 --device 0
+python3 -m ActiveDialogue.main.naive_baselines --strategy epsiloncheat --label_timeout 30 --label_budget 10000 --pool_size 50000 --al_batch 1 --fit_items 4096 --batch_size 64 --eval_period 1 --recency_bias 0 --seed 40 --seed_size 2535 --epochs 4 --device 0
+python3 -m ActiveDialogue.main.naive_baselines --strategy epsiloncheat --label_timeout 30 --label_budget 1000000 --pool_size 50000 --al_batch 2048 --fit_items 4096 --batch_size 64 --eval_period 1 --recency_bias 0 --seed 9 --seed_size 0 --epochs 4 --device 0
+python3 -m ActiveDialogue.main.naive_baselines --strategy randomsinglets --label_timeout 30 --label_budget 1000000 --pool_size 50000 --al_batch 2048 --fit_items 4096 --batch_size 64 --eval_period 1 --recency_bias 0 --seed 9 --seed_size 0 --epochs 4 --device 0
