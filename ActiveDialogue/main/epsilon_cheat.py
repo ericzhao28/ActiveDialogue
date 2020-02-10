@@ -24,6 +24,7 @@ def main():
             ended = env.step()
             env.fit()
             for k, v in env.metrics(i % args.eval_period == 0).items():
+                print(k, v)
                 logger.log_metric(k, v, step=i)
 
 

@@ -27,6 +27,7 @@ class DSTEnv():
         self._ptrs, seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
         assert len(self._ptrs) >= args.pool_size
+        self._num_turns = num_turns
 
         # Load model
         self._model = model_cls(args, self._ontology, vocab)
@@ -103,9 +104,18 @@ class DSTEnv():
             "Stream progress": self._current_idx / self._args.pool_size,
             "Exhasuted labels": self._used_labels / self._args.label_budget,
         }
+
+        total_size = 0
+        for s in self._ontology.slots:
+            total_size += self._num_turns * len(self._ontology.values[s])
+        labeled_size = 0
+        for s in self._ontology.slots:
+            labeled_size += np.sum(self._support_masks[s])
+        metrics.update({"Labeled examples": len(self._support_ptrs) / self._num_turns})
+        metrics.update({"Labeled points": labeled_size / total_size})
+
         if run_eval:
             metrics.update(self.eval())
-            print(metrics)
         return metrics
 
     def step(self):
