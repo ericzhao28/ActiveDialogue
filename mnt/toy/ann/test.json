@@ -1,6 +1,6 @@
 {"dialogues": [{"dialogue_id": 0,
                 "turns": [{"belief_state": [{"act": "inform",
-                                             "slots": [["food"]]}],
+                                             "slots": [["food", "chinese"]]}],
                            "num": {"system_acts": [[0, 16, 1]],
                                    "transcript": [0, 141, 9, 14, 33, 1]},
                            "system_acts": [],
