@@ -1,4 +1,5 @@
 from comet_ml import Experiment
+import numpy as np
 from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
