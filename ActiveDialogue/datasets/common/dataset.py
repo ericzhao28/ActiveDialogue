@@ -84,9 +84,9 @@ class Dataset:
 
         # Combine seed and training ptrs (first len(seed_ptrs) are
         # seeded).
-        all_ptrs = np.concatenate((seed_ptrs, nonseed_ptrs))
+        # all_ptrs = np.concatenate((seed_ptrs, nonseed_ptrs))
 
-        return all_ptrs, seed_ptrs, len(self.turns)
+        return nonseed_ptrs, seed_ptrs, len(self.turns)
 
     def __len__(self):
         return len(self.dialogues)

@@ -119,7 +119,7 @@ class DSTEnv():
         return self._ptrs[np.arange(
             self._current_idx,
             min(self._current_idx + self._args.al_batch,
-                self._args.pool_size - 1))]
+                self._args.pool_size))]
 
     def label(self, label):
         """Label current batch of data"""

@@ -149,15 +149,21 @@ class GCE(Model):
                 mask = {
                     s: torch.Tensor(m).to(self.device) for s, m in mask.items()
                 }
+            weight = None
+            for s in self.ontology.slots:
+                if weight is None:
+                    weight = torch.sum(mask[s], dim=1)
+                else:
+                    weight += torch.sum(mask[s], dim=1)
+            weight = torch.pow(weight, self.args.gamma)
 
             loss = 0
             for s in self.ontology.slots:
-                if mask:
+                if mask is not None:
                     unweighted = F.binary_cross_entropy(ys[s],
                                                         labels[s],
-                                                        reduction='none').mul(
-                                                            mask[s])
-                    weight = torch.sum(mask[s], dim=1)**self.args.gamma
+                                                        reduction='none')
+                    unweighted = unweighted.mul(mask[s])
                     loss += torch.sum(
                         unweighted /
                         weight.unsqueeze(1).expand_as(unweighted))
