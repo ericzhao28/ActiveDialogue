@@ -9,32 +9,38 @@ import pprint
 def main():
     args = get_args()
 
+    args.seed_size = 0
+    args.label_budget = 1000
+    args.pool_size = 1000
+    args.al_batch = 20
+    args.fit_items = 3
+    args.batch_size = 2
+    args.eval_period = 1
+    args.recency_bias = 0
+    args.seed = 912
+    args.seed_epochs = 40
+    args.epochs = 1
+
     env = DSTEnv(load_dataset, GLAD, args)
     ended = False
     i = 0
     while not ended:
         i += 1
-        print("Environment observation now.")
         raw_obs, obs_dist = env.observe()
-        print("Raw observation:")
-        pprint.pprint(raw_obs)
-        print("Observation distribution:")
-        pprint.pprint(obs_dist)
         true_labels = env.leak_labels()
-        print("True labels:")
-        pprint.pprint(true_labels)
+
         requested_label = epsilon_cheat(obs_dist, true_labels)
-        print("Environment label request now.")
         label_success = env.label(requested_label)
-        print("Label success: ", label_success)
-        print("Environment stepping now.")
         ended = env.step()
-        print("Ended: ", ended)
-        print("Fitting environment now.")
+
         env.fit()
-        print("Reporting metrics now.")
         for k, v in env.metrics(i % args.eval_period == 0).items():
             print("\t{}: {}".format(k, v))
+
+    print(env._support_masks)
+    print(env._support_labels)
+    for v in env._support_masks.values():
+        assert np.all(v)
 
 
 if __name__ == "__main__":
