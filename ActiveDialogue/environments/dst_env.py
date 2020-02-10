@@ -19,7 +19,6 @@ class DSTEnv():
 
         self._args = args
         self._current_idx = 0
-        self._old_metrics = {}
 
         # Select train/test/val dataset split
         datasets, self._ontology, vocab, Eword = load_dataset()
@@ -107,8 +106,7 @@ class DSTEnv():
         if run_eval:
             metrics.update(self.eval())
             print(metrics)
-        self._old_metrics.update(metrics)
-        return self._old_metrics
+        return metrics
 
     def step(self):
         """Step forward the current idx in the self._idxs path"""

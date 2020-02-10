@@ -23,7 +23,7 @@ def main():
             env.label(epsilon_cheat(obs_dist, env.leak_labels()))
             ended = env.step()
             env.fit()
-            for k, v in env.metrics(i % args.eval_period == 1).items():
+            for k, v in env.metrics(i % args.eval_period == 0).items():
                 logger.log_metric(k, v, step=i)
 
 
