@@ -56,7 +56,7 @@ def main():
                     raise ValueError()
 
                 # Label solicitation
-                label_occured = env.confirmation_label(label_request)
+                label_occured = env.label(label_request)
 
             # Environment stepping
             ended = env.step()

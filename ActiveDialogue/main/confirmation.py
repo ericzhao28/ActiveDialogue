@@ -6,7 +6,7 @@ from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
-from ActiveDialogue.strategies.naive_baselines import epsilon_cheat, random_singlets, passive
+from ActiveDialogue.strategies.confirmation_baselines import epsilon_cheat, random_singlets, passive
 
 
 def main():
@@ -20,6 +20,18 @@ def main():
         model_arch = GCE
 
     env = BagEnv(load_dataset, model_arch, args)
+    if args.seed_size:
+        if not env.load_seed():
+            print("No loaded seed. Training now.")
+            env.seed_fit(args.seed_epochs, prefix="seed")
+            print("Seed completed.")
+        else:
+            print("Loaded seed.")
+            if args.force_seed:
+                print("Training seed regardless.")
+                env.seed_fit(args.seed_epochs, prefix="seed")
+        print("Current seed metrics:", env.metrics(True))
+
     ended = False
     can_label = True
 
@@ -57,7 +69,7 @@ def main():
                         break
 
                     # Label solicitation
-                    label_occured = env.confirmation_label(label_request)
+                    label_occured = env.label(label_request)
 
                     # At this point, label request is non trivial but no
                     # labeling occured, so we assume budget is exhausted.
