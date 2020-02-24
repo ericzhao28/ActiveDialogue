@@ -229,8 +229,13 @@ class Model(nn.Module):
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}
 
-    def bag_forward(self, batch, bag, feedback, training=False,
-                    sl_reduction=False, optimistic_weighting=False):
+    def bag_forward(self,
+                    batch,
+                    bag,
+                    feedback,
+                    training=False,
+                    sl_reduction=False,
+                    optimistic_weighting=False):
         ys = self.infer(batch)
 
         if training:
@@ -259,14 +264,16 @@ class Model(nn.Module):
             flat_bag = torch.cat(flat_bag)
 
             if sl_reduction:
-                loss = (feedback * torch.sum(torch.log(torch.gather(ys, bag)))
-                        + (1 - feedback) * torch.sum(torch.log(1 - torch.gather(ys, bag))))
+                loss = (
+                    feedback * torch.sum(torch.log(torch.gather(ys, bag))) +
+                    (1 - feedback) *
+                    torch.sum(torch.log(1 - torch.gather(ys, bag))))
             else:
-                loss = (feedback * torch.sum(torch.log(torch.gather(ys, bag)))
-                        + (1 - feedback) * torch.log(1 - torch.prod(torch.gather(ys, bag))))
-            loss = torch.sum(
-                loss /
-                weight.unsqueeze(1).expand_as(unweighted))
+                loss = (
+                    feedback * torch.sum(torch.log(torch.gather(ys, bag))) +
+                    (1 - feedback) *
+                    torch.log(1 - torch.prod(torch.gather(ys, bag))))
+            loss = torch.sum(loss / weight.unsqueeze(1).expand_as(unweighted))
         else:
             loss = torch.Tensor([0]).to(self.device)
 

@@ -11,7 +11,8 @@ def random_singlets(pred):
     for i, key in enumerate(pred.keys()):
         if not len(chosen_keys):
             batch_size = len(pred[key])
-            chosen_keys = np.array(np.random.randint(0, len(pred.keys()), batch_size))
+            chosen_keys = np.array(
+                np.random.randint(0, len(pred.keys()), batch_size))
         idxs = np.where(chosen_keys == i)
         label[key] = np.zeros(pred[key].shape)
         label_idxs = np.random.randint(0, len(pred[key][0]), len(idxs))
@@ -34,5 +35,3 @@ def epsilon_cheat(pred, true_labels):
             for s in rnd.keys():
                 rnd[s][i] = true_labels[s][i]
     return rnd
-
-

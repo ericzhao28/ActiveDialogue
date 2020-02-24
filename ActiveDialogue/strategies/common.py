@@ -4,6 +4,7 @@ import numpy as np
 
 
 class FixedThresholdStrategy():
+
     def __init__(self, init_threshold, measure_uncertainty):
         self._threshold = init_threshold
         self._measure_uncertainty = measure_uncertainty
@@ -18,6 +19,7 @@ class FixedThresholdStrategy():
 
 
 class VariableThresholdStrategy():
+
     def __init__(self, init_threshold, measure_uncertainty):
         self._threshold = init_threshold
         self._measure_uncertainty = measure_uncertainty
@@ -35,13 +37,15 @@ class VariableThresholdStrategy():
 
 
 class StochasticVariableThresholdStrategy():
+
     def __init__(self, init_threshold, measure_uncertainty, noise_std):
         self._threshold = init_threshold
         self._measure_uncertainty = measure_uncertainty
         self._noise_std = noise_std
 
     def observe(self, obs):
-        value = self._measure_uncertainty(obs) * np.random.normal(mean=1, std=self._noise)
+        value = self._measure_uncertainty(obs) * np.random.normal(
+            mean=1, std=self._noise)
         if value > self._threshold:
             return
 

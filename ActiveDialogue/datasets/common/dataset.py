@@ -43,8 +43,8 @@ class Dataset:
         }
         for i, turn in enumerate(self.turns):
             for slot, value in turn.turn_label:
-                self.turns_labels[slot][i, ontology.values[slot].index(
-                    value)] = 1
+                self.turns_labels[slot][
+                    i, ontology.values[slot].index(value)] = 1
 
     def get_turn_ptrs(self, pool_size, seed_size, sample_mode):
         """Get a list of ptrs into Dataset.turns by SS env.
@@ -72,7 +72,8 @@ class Dataset:
         if sample_mode == "singlepass":
             # Grab permutations of nonseed_ptrs until pool_size is hit.
             nonseed_ptrs = []
-            for i in range(0, pool_size + len(orig_nonseed_ptrs), len(orig_nonseed_ptrs)):
+            for i in range(0, pool_size + len(orig_nonseed_ptrs),
+                           len(orig_nonseed_ptrs)):
                 nonseed_ptrs.append(np.random.permutation(orig_nonseed_ptrs))
             nonseed_ptrs = np.concatenate(nonseed_ptrs)[:pool_size]
             assert len(nonseed_ptrs) == pool_size
@@ -142,7 +143,6 @@ class Dataset:
             yield turns[i:i + batch_size], {
                 s: v[i:i + batch_size] for s, v in labels.items()
             }
-
 
     def get_labels(self, ptrs=None):
         """Return requested labels

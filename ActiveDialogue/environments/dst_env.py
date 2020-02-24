@@ -43,11 +43,9 @@ class DSTEnv():
         self._bag_feedback = []
         for s in self._ontology.slots:
             self._support_masks[s] = np.zeros(
-                (num_turns, len(self._ontology.values[s])),
-                dtype=np.int32)
+                (num_turns, len(self._ontology.values[s])), dtype=np.int32)
             self._support_labels[s] = np.zeros(
-                (num_turns, len(self._ontology.values[s])),
-                dtype=np.int32)
+                (num_turns, len(self._ontology.values[s])), dtype=np.int32)
             self._bags_idxs[s] = []
 
         # Seed set: grab full labels and load into support set
@@ -97,9 +95,7 @@ class DSTEnv():
                 preds[s].append(batch_preds[s])
             obs.append(batch)
         obs = np.concatenate(obs)
-        preds = {
-            s: np.concatenate(v) for s, v in preds.items()
-        }
+        preds = {s: np.concatenate(v) for s, v in preds.items()}
         return obs, preds
 
     def metrics(self, run_eval=False):
@@ -115,7 +111,8 @@ class DSTEnv():
         for s in self._ontology.slots:
             labeled_size += np.sum(self._support_masks[s])
         metrics.update({"Bit label proportion": labeled_size / total_size})
-        metrics.update({"Bag proportion": len(self._bag_ptrs) / self._num_turns})
+        metrics.update(
+            {"Bag proportion": len(self._bag_ptrs) / self._num_turns})
 
         if run_eval:
             metrics.update(self.eval())
@@ -173,7 +170,8 @@ class DSTEnv():
             for s in self._ontology.slots:
                 true_labels = self._dataset.get_labels(label_ptrs)[s]
                 for i in range(num_labels):
-                    feedback[i] = feedback[i] and np.all(true_labels[i][np.where(label[s][i])])
+                    feedback[i] = feedback[i] and np.all(
+                        true_labels[i][np.where(label[s][i])])
 
             for i in range(num_labels):
                 totals = 0
@@ -181,7 +179,8 @@ class DSTEnv():
                     self._bag_idxs[s].append(np.where(label[s][i]))
                     totals += len(self._bag_idxs[s][-1])
                 if totals == 1 or feedback[i] == 1:
-                    self._support_masks[s][label_ptrs[i]][np.where(label[s][i])] = 1
+                    self._support_masks[s][label_ptrs[i]][np.where(
+                        label[s][i])] = 1
 
             self._bag_feedback += list(feedback)
             self._bag_ptrs += list(label_ptrs)
@@ -210,11 +209,14 @@ class DSTEnv():
                 ptrs=self._seed_ptrs,
                 shuffle=True)
 
-            shuffled_bag_idxs = np.random.permutation(np.arange(self._bag_ptrs))[:self._args.fit_items]
+            shuffled_bag_idxs = np.random.permutation(
+                np.arange(self._bag_ptrs))[:self._args.fit_items]
             print("Fitting on {} bags".format(len(shuffled_bag_idxsffl)))
 
-            for batch_i, (bag_batch, _) in enumerate(self._dataset.batch(batch_size=self._args.batch_size,
-                ptrs=np.array(self._bag_ptrs)[shuffled_bag_idxs])):
+            for batch_i, (bag_batch, _) in enumerate(
+                    self._dataset.batch(
+                        batch_size=self._args.batch_size,
+                        ptrs=np.array(self._bag_ptrs)[shuffled_bag_idxs])):
 
                 iteration += 1
                 self._model.zero_grad()
@@ -227,15 +229,21 @@ class DSTEnv():
                         ptrs=self._seed_ptrs,
                         shuffle=True)
                     batch, batch_labels = next(seed_iterator)
-                loss, scores = self._model.forward(
-                    batch,
-                    batch_labels,
-                    training=True)
+                loss, scores = self._model.forward(batch,
+                                                   batch_labels,
+                                                   training=True)
 
                 bloss, bscores = self._model.bag_forward(
                     bag_batch,
-                    self._bag_ptrs[shuffled_bag_idxs[batch_i * self._args.batch_size : (batch_i + 1) * self._args.batch_size]],
-                    self._bag_feedback[shuffled_bag_idxs[batch_i * self._args.batch_size : (batch_i + 1) * self._args.batch_size]],
+                    self._bag_ptrs[shuffled_bag_idxs[batch_i *
+                                                     self._args.batch_size:
+                                                     (batch_i + 1) *
+                                                     self._args.batch_size]],
+                    self._bag_feedback[
+                        shuffled_bag_idxs[batch_i *
+                                          self._args.batch_size:(batch_i +
+                                                                 1) *
+                                          self._args.batch_size]],
                     training=True,
                     sl_reduction=args.sl_reduction,
                     optimistic_weighting=args.optimistic_weighting)

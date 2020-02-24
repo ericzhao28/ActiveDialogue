@@ -29,7 +29,8 @@ def main():
                 for j in range(args.label_timeout):
                     # Obtain label request from strategy
                     if args.strategy == "epsiloncheat":
-                        label_request = epsilon_cheat(obs_dist, env.leak_labels())
+                        label_request = epsilon_cheat(obs_dist,
+                                                      env.leak_labels())
                     elif args.strategy == "randomsinglets":
                         label_request = random_singlets(obs_dist)
                     elif args.strategy == "passive":

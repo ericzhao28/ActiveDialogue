@@ -155,7 +155,7 @@ class GLAD(Model):
             y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
 
             # combine the scores
-            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts).to(self.device)
+            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts).to(
+                self.device)
 
         return ys
-
