@@ -38,15 +38,15 @@ class DSTEnv():
         self._used_labels = 0
         self._support_masks = {}
         self._support_labels = {}
-        self._bag_ptrs = []
+        self._bag_ptrs = np.array([], dtype=np.int32)
         self._bag_idxs = {}
-        self._bag_feedback = []
+        self._bag_feedback = np.array([], dtype=np.int32)
         for s in self._ontology.slots:
             self._support_masks[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])), dtype=np.int32)
             self._support_labels[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])), dtype=np.int32)
-            self._bags_idxs[s] = []
+            self._bag_idxs[s] = []
 
         # Seed set: grab full labels and load into support set
         seed_labels = self._dataset.get_labels(seed_ptrs)
@@ -65,7 +65,7 @@ class DSTEnv():
     def train_seed(self):
         """Train a model on seed support and save as seed"""
         self._model = self._model.to(self._model.device)
-        self.fit(self._args.seed_epochs)
+        self.seed_fit(self._args.seed_epochs)
         self._model.save({}, identifier='seed' + str(self._args.seed))
 
     def load_seed(self):
@@ -176,18 +176,47 @@ class DSTEnv():
             for i in range(num_labels):
                 totals = 0
                 for s in self._ontology.slots:
-                    self._bag_idxs[s].append(np.where(label[s][i]))
+                    self._bag_idxs[s].append(np.where(label[s][i])[0])
                     totals += len(self._bag_idxs[s][-1])
+                assert totals > 0
                 if totals == 1 or feedback[i] == 1:
                     self._support_masks[s][label_ptrs[i]][np.where(
                         label[s][i])] = 1
 
-            self._bag_feedback += list(feedback)
-            self._bag_ptrs += list(label_ptrs)
+            self._bag_feedback = np.concatenate(
+                [self._bag_feedback, feedback])
+            self._bag_ptrs = np.concatenate([self._bag_ptrs, label_ptrs])
             self._used_labels += num_labels
             return True
 
         return False
+
+    def seed_fit(self, epochs=None):
+        if self._model.optimizer is None:
+            self._model.set_optimizer()
+
+        iteration = 0
+        if not epochs:
+            epochs = self._args.epochs
+        self._model.train()
+
+        print("Seed training for {} epochs starting now.".format(epochs))
+        for epoch in range(epochs):
+            print('starting epoch {}'.format(epoch))
+
+            for batch, batch_labels in self._dataset.batch(
+                    batch_size=self._args.batch_size,
+                    ptrs=self._seed_ptrs,
+                    shuffle=True):
+
+                iteration += 1
+                self._model.zero_grad()
+
+                loss, scores = self._model.forward(batch,
+                                                   batch_labels,
+                                                   training=True)
+                loss.backward()
+                self._model.optimizer.step()
 
     def fit(self, epochs=None):
         if self._model.optimizer is None:
@@ -210,13 +239,13 @@ class DSTEnv():
                 shuffle=True)
 
             shuffled_bag_idxs = np.random.permutation(
-                np.arange(self._bag_ptrs))[:self._args.fit_items]
-            print("Fitting on {} bags".format(len(shuffled_bag_idxsffl)))
+                np.arange(len(self._bag_ptrs)))[:self._args.fit_items]
+            print("Fitting on {} bags".format(len(shuffled_bag_idxs)))
 
             for batch_i, (bag_batch, _) in enumerate(
                     self._dataset.batch(
                         batch_size=self._args.batch_size,
-                        ptrs=np.array(self._bag_ptrs)[shuffled_bag_idxs])):
+                        ptrs=self._bag_ptrs[shuffled_bag_idxs])):
 
                 iteration += 1
                 self._model.zero_grad()
@@ -234,21 +263,24 @@ class DSTEnv():
                                                    training=True)
 
                 bloss, bscores = self._model.bag_forward(
-                    bag_batch,
-                    self._bag_ptrs[shuffled_bag_idxs[batch_i *
-                                                     self._args.batch_size:
-                                                     (batch_i + 1) *
-                                                     self._args.batch_size]],
+                    bag_batch, {
+                        s:
+                        np.array(v)[shuffled_bag_idxs[batch_i *
+                                                      self._args.batch_size:
+                                                      (batch_i + 1) *
+                                                      self._args.batch_size]]
+                        for s, v in self._bag_idxs.items()
+                    },
                     self._bag_feedback[
                         shuffled_bag_idxs[batch_i *
                                           self._args.batch_size:(batch_i +
                                                                  1) *
                                           self._args.batch_size]],
                     training=True,
-                    sl_reduction=args.sl_reduction,
-                    optimistic_weighting=args.optimistic_weighting)
+                    sl_reduction=self._args.sl_reduction,
+                    optimistic_weighting=self._args.optimistic_weighting)
 
-                (args.gamma * loss + bloss).backward()
+                (self._args.gamma * loss + bloss).backward()
                 self._model.optimizer.step()
 
     def eval(self):
