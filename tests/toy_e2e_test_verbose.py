@@ -15,6 +15,7 @@ def main():
     args.al_batch = 2
     args.fit_items = 3
     args.batch_size = 2
+    args.comp_batch_size = 2
     args.eval_period = 1
     args.recency_bias = 0
     args.seed = 911

@@ -17,5 +17,5 @@ for i in range(100):
                 labeled[j] += 1
     assert np.all(labeled == np.ones_like(labeled))
 
-    for v in naive_baselines.passive_baseline(example_pred).values():
+    for v in naive_baselines.passive(example_pred).values():
         assert not np.any(v)
