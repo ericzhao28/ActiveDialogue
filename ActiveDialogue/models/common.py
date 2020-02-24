@@ -221,7 +221,7 @@ class Model(nn.Module):
         ys = self.infer(batch)
         if training:
             keys = list(labels.keys())
-            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys]), axis=1).to(self.device)
+            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys], axis=1)).to(self.device)
             flatys = torch.cat([ys[k] for k in keys], dim=1)
             loss = F.binary_cross_entropy(flatys, flatlabels)
         else:
