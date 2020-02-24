@@ -106,7 +106,7 @@ class DSTEnv():
         label = label[:self._args.label_budget - self._used_labels]
 
         # Add new label ptrs to support ptrs
-        self._support_ptrs = np.concatenate([self.support_ptrs, self.current_ptrs[np.where(label == 1)]])
+        self._support_ptrs = np.concatenate([self._support_ptrs, self.current_ptrs[np.where(label == 1)]])
 
         return len(label) > 0
 

@@ -58,6 +58,10 @@ class PartialEnv(DSTEnv):
         for i in range(batch_size):
             label_size = 0
             for s in self._ontology.slots:
+                # remove redundancy
+                redundant = self._support_masks[s][self.current_ptrs[i]] == 1
+                label[s][i][redundant] = 0
+
                 label_size += sum(label[s][i])
             if total_labels + label_size + self._used_labels > self._args.label_budget:
                 break
@@ -72,7 +76,8 @@ class PartialEnv(DSTEnv):
 
         # Label!
         if len(label_ptrs):
-            self._support_masks[label_ptrs] = label
+            for s in self._ontology.slots:
+                self._support_masks[s][label_ptrs] = label[s]
             self._support_ptrs = np.concatenate([self._support_ptrs, label_ptrs])
             assert len(self._support_ptrs) == len(np.unique(self._support_ptrs))
             self._used_labels += total_labels
