@@ -108,7 +108,7 @@ class GLAD(Model):
         self.utt_scorer = nn.Linear(2 * args.dhid, 1)
         self.score_weight = nn.Parameter(torch.Tensor([0.5]))
 
-    def forward(self, batch, labels=None, mask=None, training=False):
+    def infer(self, batch):
         # convert to variables and look up embeddings
         eos = self.vocab.word2index('<eos>')
         utterance, utterance_len = pad([e.num['transcript'] for e in batch],
@@ -157,35 +157,5 @@ class GLAD(Model):
             # combine the scores
             ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts).to(self.device)
 
-        if training:
-            labels = {
-                s: torch.Tensor(m).to(self.device) for s, m in labels.items()
-            }
-            if mask:
-                mask = {
-                    s: torch.Tensor(m).to(self.device) for s, m in mask.items()
-                }
+        return ys
 
-            weight = None
-            for s in self.ontology.slots:
-                if weight is None:
-                    weight = torch.sum(mask[s], dim=1)
-                else:
-                    weight += torch.sum(mask[s], dim=1)
-            weight = torch.pow(weight, self.args.gamma)
-
-            loss = 0
-            for s in self.ontology.slots:
-                if mask is not None:
-                    unweighted = F.binary_cross_entropy(ys[s],
-                                                        labels[s],
-                                                        reduction='none')
-                    unweighted = unweighted.mul(mask[s])
-                    loss += torch.sum(
-                        unweighted /
-                        weight.unsqueeze(1).expand_as(unweighted))
-                else:
-                    loss += F.binary_cross_entropy(ys[s], labels[s])
-        else:
-            loss = torch.Tensor([0]).to(self.device)
-        return loss, {s: v.data.tolist() for s, v in ys.items()}

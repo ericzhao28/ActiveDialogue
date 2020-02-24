@@ -215,3 +215,59 @@ class Model(nn.Module):
             assert scores_and_files, 'no saves exist at {}'.format(directory)
             score, fname = scores_and_files[0]
             self.load(fname)
+
+    def forward(self, batch, labels=None, training=False):
+        ys = self.infer(batch)
+        if training:
+            labels = {
+                s: torch.Tensor(m).to(self.device) for s, m in labels.items()
+            }
+            loss = 0
+            for s in self.ontology.slots:
+                loss += F.binary_cross_entropy(ys[s], labels[s])
+        else:
+            loss = torch.Tensor([0]).to(self.device)
+        return loss, {s: v.data.tolist() for s, v in ys.items()}
+
+    def bag_forward(self, batch, bag, feedback, training=False,
+                    sl_reduction=False, optimistic_weighting=False):
+        ys = self.infer(batch)
+
+        if training:
+            labels = {
+                s: torch.Tensor(m).to(self.device) for s, m in labels.items()
+            }
+
+            weight = None
+            for s in self.ontology.slots:
+                if weight is None:
+                    weight = torch.sum(bag[s], dim=1)
+                else:
+                    weight += torch.sum(bag[s], dim=1)
+            if not optimistic_weighting:
+                weight[not feedback] = 1
+
+            loss = 0
+            prev = 0
+            flat_ys = []
+            flat_bag = []
+            for s in self.ontology.slots:
+                flat_ys.append(ys[s])
+                flat_bag.append(bag[s] + prev)
+                prev += len(self.ontology.values[s])
+            flat_ys = torch.cat(flat_ys)
+            flat_bag = torch.cat(flat_bag)
+
+            if sl_reduction:
+                loss = (feedback * torch.sum(torch.log(torch.gather(ys, bag)))
+                        + (1 - feedback) * torch.sum(torch.log(1 - torch.gather(ys, bag))))
+            else:
+                loss = (feedback * torch.sum(torch.log(torch.gather(ys, bag)))
+                        + (1 - feedback) * torch.log(1 - torch.prod(torch.gather(ys, bag))))
+            loss = torch.sum(
+                loss /
+                weight.unsqueeze(1).expand_as(unweighted))
+        else:
+            loss = torch.Tensor([0]).to(self.device)
+
+        return loss, {s: v.data.tolist() for s, v in ys.items()}
