@@ -220,12 +220,22 @@ class Model(nn.Module):
     def forward(self, batch, labels=None, training=False):
         ys = self.infer(batch)
         if training:
-            labels = {
-                s: torch.Tensor(m).to(self.device) for s, m in labels.items()
-            }
-            loss = 0
-            for s in self.ontology.slots:
-                loss += F.binary_cross_entropy(ys[s], labels[s])
+            keys = list(labels.keys())
+            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys]), axis=1).to(self.device)
+            flatys = torch.cat([ys[k] for k in keys], dim=1)
+            loss = F.binary_cross_entropy(flatys, flatlabels)
+        else:
+            loss = torch.Tensor([0]).to(self.device)
+        return loss, {s: v.data.tolist() for s, v in ys.items()}
+
+    def partial_forward(self, batch, labels=None, training=False, mask=None):
+        ys = self.infer(batch)
+        if training:
+            keys = list(labels.keys())
+            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys], axis=1)).to(self.device)
+            flatys = torch.cat([ys[k] for k in keys], dim=1)
+            flatmask = torch.Tensor(np.concatenate([mask[k] for k in keys], axis=1)).to(self.device)
+            loss = torch.mean(F.binary_cross_entropy(flatys, flatlabels, reduce='none').mul(flatmask))
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}

@@ -1,0 +1,15 @@
+python3 -m ActiveDialogue.main.vanilla \
+  --strategy aggressive \
+  --label_budget 1000 \
+  --pool_size 5000 \
+  --al_batch 512 \
+  --batch_size 64 \
+  --eval_period 1 \
+  --seed 4000 \
+  --seed_size 50 \
+  --epochs 4 \
+  --seed_epochs 100 \
+  --model glad \
+  --device 0 \
+  --lr 0.001 \
+  --force_seed

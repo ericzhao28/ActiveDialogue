@@ -1,6 +1,6 @@
 from comet_ml import Experiment
 import numpy as np
-from ActiveDialogue.environments.dst_env import DSTEnv
+from ActiveDialogue.environments.bag_env import BagEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.models.gce import GCE
@@ -19,7 +19,7 @@ def main():
     elif args.model == "gce":
         model_arch = GCE
 
-    env = DSTEnv(load_dataset, model_arch, args)
+    env = BagEnv(load_dataset, model_arch, args)
     ended = False
     can_label = True
 
@@ -57,7 +57,7 @@ def main():
                         break
 
                     # Label solicitation
-                    label_occured = env.label(label_request)
+                    label_occured = env.confirmation_label(label_request)
 
                     # At this point, label request is non trivial but no
                     # labeling occured, so we assume budget is exhausted.
