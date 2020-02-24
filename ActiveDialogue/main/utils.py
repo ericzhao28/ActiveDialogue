@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument('--strategy', type=str, default="")
     parser.add_argument('--label_timeout', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--comp_batch_size', type=int, default=32)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')

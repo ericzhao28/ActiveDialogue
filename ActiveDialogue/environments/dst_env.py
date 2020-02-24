@@ -210,6 +210,7 @@ class DSTEnv():
                     shuffle=True):
 
                 iteration += 1
+                print("Iteration: ", iteration)
                 self._model.zero_grad()
 
                 loss, scores = self._model.forward(batch,
@@ -227,14 +228,12 @@ class DSTEnv():
             epochs = self._args.epochs
         self._model.train()
 
-        # TODO: Simplify bag ptrs
-
         print("Training for {} epochs starting now.".format(epochs))
         for epoch in range(epochs):
             print('starting epoch {}'.format(epoch))
 
             seed_iterator = self._dataset.batch(
-                batch_size=self._args.batch_size,
+                batch_size=self._args.comp_batch_size,
                 ptrs=self._seed_ptrs,
                 shuffle=True)
 
@@ -246,6 +245,7 @@ class DSTEnv():
                     self._dataset.batch(
                         batch_size=self._args.batch_size,
                         ptrs=self._bag_ptrs[shuffled_bag_idxs])):
+                print("Batch: ", batch_i + 1)
 
                 iteration += 1
                 self._model.zero_grad()

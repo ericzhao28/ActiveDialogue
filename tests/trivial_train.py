@@ -31,7 +31,6 @@ def main():
         for batch, batch_labels in datasets["train"].batch(
                 batch_size=args.batch_size,
                 ptrs=ptrs,
-                labels=datasets["train"].get_labels(),
                 shuffle=True):
             iteration += 1
             model.zero_grad()

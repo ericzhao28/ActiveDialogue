@@ -238,7 +238,7 @@ class Model(nn.Module):
                     sl_reduction=False,
                     optimistic_weighting=False):
         ys = self.infer(batch)
-        feedback = torch.tensor(feedback).float()
+        feedback = torch.tensor(feedback).float().to(self.device)
 
         if training:
             weight = None
@@ -246,7 +246,7 @@ class Model(nn.Module):
                 tbag = torch.zeros_like(ys[s])
                 tbag_idxs = np.array([(ii, j) for ii, i in enumerate(bag[s]) for j in i])
                 tbag[tbag_idxs[:, 0], tbag_idxs[:, 1]] = 1
-                bag[s] = tbag
+                bag[s] = tbag.to(self.device)
 
                 if weight is None:
                     weight = torch.sum(bag[s], dim=1)

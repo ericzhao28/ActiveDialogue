@@ -3,6 +3,7 @@ import numpy as np
 from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
+from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.naive_baselines import epsilon_cheat, random_singlets, passive
@@ -13,7 +14,12 @@ def main():
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
     logger.log_parameters(vars(args))
 
-    env = DSTEnv(load_dataset, GLAD, args)
+    if args.model == "glad":
+        model_arch = GLAD
+    elif args.model == "gce":
+        model_arch = GCE
+
+    env = DSTEnv(load_dataset, model_arch, args)
     ended = False
     can_label = True
 

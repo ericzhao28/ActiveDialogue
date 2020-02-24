@@ -139,7 +139,7 @@ class Dataset:
         labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
 
         # Yield from our list of turns
-        for i in tqdm(range(0, len(turns), batch_size)):
+        for i in range(0, len(turns), batch_size):
             yield turns[i:i + batch_size], {
                 s: v[i:i + batch_size] for s, v in labels.items()
             }
