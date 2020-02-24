@@ -119,13 +119,12 @@ class Dataset:
         return Ontology(sorted(list(slots)),
                         {k: sorted(list(v)) for k, v in values.items()})
 
-    def batch(self, batch_size, ptrs=None, labels=None, shuffle=False, give_ptrs=False):
+    def batch(self, batch_size, ptrs=None, shuffle=False):
         """Grab a batch of dialogue turns and labels
         Args:
             batch_size: batch size.
             ptrs: specify which turn ptrs are to be included. By default,
                   all turns are included.
-            labels: provide competing labels (1:1 with self.turns_labels)
             shuffle: should the ordering of turns be shuffled?
         """
         # Build array of relevant turn instances
@@ -136,21 +135,13 @@ class Dataset:
         turns = self.turns[ptrs]
 
         # Build array of labels
-        if labels is None:
-            labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
-        else:
-            labels = {s: v[ptrs] for s, v in labels.items()}
+        labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
 
         # Yield from our list of turns
         for i in tqdm(range(0, len(turns), batch_size)):
-            if give_ptrs:
-                yield turns[i:i + batch_size], {
-                    s: v[i:i + batch_size] for s, v in labels.items()
-                    }, ptrs[i:i+batch_size]
-            else:
-                yield turns[i:i + batch_size], {
-                    s: v[i:i + batch_size] for s, v in labels.items()
-                }
+            yield turns[i:i + batch_size], {
+                s: v[i:i + batch_size] for s, v in labels.items()
+            }
 
 
     def get_labels(self, ptrs=None):

@@ -36,9 +36,11 @@ class DSTEnv():
 
         # Support set, initialize masks and labels
         self._used_labels = 0
-        self._support_ptrs = set()
         self._support_masks = {}
         self._support_labels = {}
+        self._bag_ptrs = []
+        self._bag_idxs = {}
+        self._bag_feedback = []
         for s in self._ontology.slots:
             self._support_masks[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])),
@@ -46,10 +48,11 @@ class DSTEnv():
             self._support_labels[s] = np.zeros(
                 (num_turns, len(self._ontology.values[s])),
                 dtype=np.int32)
+            self._bags_idxs[s] = []
 
         # Seed set: grab full labels and load into support set
         seed_labels = self._dataset.get_labels(seed_ptrs)
-        self._support_ptrs = set(seed_ptrs)
+        self._seed_ptrs = seed_ptrs
         if args.seed_size:
             for s in self._ontology.slots:
                 self._support_labels[s][seed_ptrs, :] = seed_labels[s]
@@ -111,8 +114,8 @@ class DSTEnv():
         labeled_size = 0
         for s in self._ontology.slots:
             labeled_size += np.sum(self._support_masks[s])
-        metrics.update({"Labeled examples": len(self._support_ptrs) / self._num_turns})
-        metrics.update({"Labeled points": labeled_size / total_size})
+        metrics.update({"Bit label proportion": labeled_size / total_size})
+        metrics.update({"Bag proportion": len(self._bag_ptrs) / self._num_turns})
 
         if run_eval:
             metrics.update(self.eval())
@@ -171,26 +174,23 @@ class DSTEnv():
                 true_labels = self._dataset.get_labels(label_ptrs)[s]
                 for i in range(num_labels):
                     feedback[i] = feedback[i] and np.all(true_labels[i][np.where(label[s][i])])
-            # Apply labels
-            for s in self._ontology.slots:
-                for i in range(num_labels):
-                    current_label = self._support_labels[s][label_ptrs[i]][np.where(label[s][i])]
-                    self._support_labels[s][label_ptrs[i]][np.where(label[s][i])] = np.logical_or(current_label, feedback[i])  # default to positive if not negative 1
+
+            for i in range(num_labels):
+                totals = 0
+                for s in self._ontology.slots:
+                    self._bag_idxs[s].append(np.where(label[s][i]))
+                    totals += len(self._bag_idxs[s][-1])
+                if totals == 1 or feedback[i] == 1:
                     self._support_masks[s][label_ptrs[i]][np.where(label[s][i])] = 1
+
+            self._bag_feedback += list(feedback)
+            self._bag_ptrs += list(label_ptrs)
             self._used_labels += num_labels
-            self._support_ptrs = self._support_ptrs.union(set(label_ptrs))
             return True
 
         return False
 
     def fit(self, epochs=None):
-        support_ptrs = np.array(list(self._support_ptrs))
-        for i in range(len(self._support_ptrs)):
-            valid = False
-            for s in self._support_masks.keys():
-                valid = valid or np.any(self._support_masks[s][support_ptrs[i]])
-            assert valid
-
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
@@ -198,33 +198,49 @@ class DSTEnv():
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
+
+        # TODO: Simplify bag ptrs
+
         print("Training for {} epochs starting now.".format(epochs))
         for epoch in range(epochs):
             print('starting epoch {}'.format(epoch))
 
-            support_ptrs = np.array(list(self._support_ptrs))
-            support_ptrs = support_ptrs[np.random.permutation(np.arange(support_ptrs.shape[0]))][:self._args.fit_items]
-            print("Fitting on {} viable turns.".format(len(support_ptrs)))
+            seed_iterator = self._dataset.batch(
+                batch_size=self._args.batch_size,
+                ptrs=self._seed_ptrs,
+                shuffle=True)
 
-            # train and update parameters
-            for batch, batch_labels, batch_ptrs in self._dataset.batch(
-                    batch_size=self._args.batch_size,
-                    ptrs=np.array(support_ptrs, dtype=np.int32),
-                    labels={
-                        s: np.maximum(v, 0, dtype=np.float32)
-                        for s, v in self._support_labels.items()
-                    },
-                    shuffle=True, give_ptrs=True):
+            shuffled_bag_idxs = np.random.permutation(np.arange(self._bag_ptrs))[:self._args.fit_items]
+            print("Fitting on {} bags".format(len(shuffled_bag_idxsffl)))
 
-                mask = {s: np.array(v[batch_ptrs], dtype=np.float32) for s, v in self._support_masks.items()}
+            for batch_i, (bag_batch, _) in enumerate(self._dataset.batch(batch_size=self._args.batch_size,
+                ptrs=np.array(self._bag_ptrs)[shuffled_bag_idxs])):
+
                 iteration += 1
                 self._model.zero_grad()
+
+                try:
+                    batch, batch_labels = next(seed_iterator)
+                except StopIteration:
+                    seed_iterator = self._dataset.batch(
+                        batch_size=self._args.batch_size,
+                        ptrs=self._seed_ptrs,
+                        shuffle=True)
+                    batch, batch_labels = next(seed_iterator)
                 loss, scores = self._model.forward(
                     batch,
                     batch_labels,
-                    mask=mask,
                     training=True)
-                loss.backward()
+
+                bloss, bscores = self._model.bag_forward(
+                    bag_batch,
+                    self._bag_ptrs[shuffled_bag_idxs[batch_i * self._args.batch_size : (batch_i + 1) * self._args.batch_size]],
+                    self._bag_feedback[shuffled_bag_idxs[batch_i * self._args.batch_size : (batch_i + 1) * self._args.batch_size]],
+                    training=True,
+                    sl_reduction=args.sl_reduction,
+                    optimistic_weighting=args.optimistic_weighting)
+
+                (args.gamma * loss + bloss).backward()
                 self._model.optimizer.step()
 
     def eval(self):

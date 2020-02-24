@@ -49,6 +49,10 @@ def get_args():
                         nargs='*',
                         help='dropout rates',
                         default=['emb=0.2', 'local=0.2', 'global=0.2'])
+    parser.add_argument('--sl_reduction', dest='sl_reduction', action='store_true')
+    parser.set_defaults(sl_reduction=False)
+    parser.add_argument('--optimistic_weighting', dest='optimistic_weighting', action='store_true')
+    parser.set_defaults(optimistic_weighting=False)
     parser.set_defaults(device=None)
 
     args = parser.parse_args()
