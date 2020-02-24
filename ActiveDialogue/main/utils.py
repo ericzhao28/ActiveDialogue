@@ -21,7 +21,8 @@ def get_args():
     parser.add_argument('--strategy', type=str, default="")
     parser.add_argument('--label_timeout', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--comp_batch_size', type=int, default=32)
+    parser.add_argument('--bag_batch_size', type=int, default=32)
+    parser.add_argument('--inference_batch_size', type=int, default=256)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')
@@ -58,6 +59,10 @@ def get_args():
                         dest='optimistic_weighting',
                         action='store_true')
     parser.set_defaults(optimistic_weighting=False)
+    parser.add_argument('--force_seed',
+                        dest='force_seed',
+                        action='store_true')
+    parser.set_defaults(force_seed=False)
     parser.set_defaults(device=None)
 
     args = parser.parse_args()

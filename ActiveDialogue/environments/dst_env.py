@@ -56,17 +56,21 @@ class DSTEnv():
                 self._support_labels[s][seed_ptrs, :] = seed_labels[s]
                 self._support_masks[s][seed_ptrs, :] = 1
             print("Seeding")
+
             if not self.load_seed():
                 self.train_seed()
                 print("Saving!")
             else:
                 print("Loaded!")
+                if self._args.force_seed:
+                    self.train_seed()
+                    print("Saving!")
+                print("Seed metrics", self.metrics(True))
 
     def train_seed(self):
         """Train a model on seed support and save as seed"""
         self._model = self._model.to(self._model.device)
         self.seed_fit(self._args.seed_epochs)
-        self._model.save({}, identifier='seed' + str(self._args.seed))
 
     def load_seed(self):
         """"Load seeded model for the current seed"""
@@ -84,7 +88,7 @@ class DSTEnv():
         obs = []
         preds = {}
         self._model.eval()
-        for batch, _ in self._dataset.batch(batch_size=self._args.batch_size,
+        for batch, _ in self._dataset.batch(batch_size=self._args.inference_batch_size,
                                             ptrs=self.current_ptrs,
                                             shuffle=False):
             batch_preds = self._model.forward(batch)[1]
@@ -196,6 +200,7 @@ class DSTEnv():
             self._model.set_optimizer()
 
         iteration = 0
+        best = None
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
@@ -219,6 +224,14 @@ class DSTEnv():
                 loss.backward()
                 self._model.optimizer.step()
 
+            metrics = self.metrics(True)
+            print(metrics)
+            if best is None or metrics[self._args.stop] > best:
+                print("Saving best!")
+                self._model.save({}, identifier='seed' + str(self._args.seed))
+                best = metrics[self._args.stop]
+            self._model.train()
+
     def fit(self, epochs=None):
         if self._model.optimizer is None:
             self._model.set_optimizer()
@@ -233,7 +246,7 @@ class DSTEnv():
             print('starting epoch {}'.format(epoch))
 
             seed_iterator = self._dataset.batch(
-                batch_size=self._args.comp_batch_size,
+                batch_size=self._args.batch_size,
                 ptrs=self._seed_ptrs,
                 shuffle=True)
 
@@ -243,7 +256,7 @@ class DSTEnv():
 
             for batch_i, (bag_batch, _) in enumerate(
                     self._dataset.batch(
-                        batch_size=self._args.batch_size,
+                        batch_size=self._args.bag_batch_size,
                         ptrs=self._bag_ptrs[shuffled_bag_idxs])):
                 print("Batch: ", batch_i + 1)
 
@@ -266,22 +279,26 @@ class DSTEnv():
                     bag_batch, {
                         s:
                         np.array(v)[shuffled_bag_idxs[batch_i *
-                                                      self._args.batch_size:
+                                                      self._args.bag_batch_size:
                                                       (batch_i + 1) *
-                                                      self._args.batch_size]]
+                                                      self._args.bag_batch_size]]
                         for s, v in self._bag_idxs.items()
                     },
                     self._bag_feedback[
                         shuffled_bag_idxs[batch_i *
-                                          self._args.batch_size:(batch_i +
+                                          self._args.bag_batch_size:(batch_i +
                                                                  1) *
-                                          self._args.batch_size]],
+                                          self._args.bag_batch_size]],
                     training=True,
                     sl_reduction=self._args.sl_reduction,
                     optimistic_weighting=self._args.optimistic_weighting)
 
                 (self._args.gamma * loss + bloss).backward()
                 self._model.optimizer.step()
+
+            metrics = self.metrics(True)
+            print(metrics)
+            self._model.train()
 
     def eval(self):
         logging.info('Running dev evaluation')

@@ -8,9 +8,11 @@ from pprint import pprint
 
 def main():
     args = get_args()
+    args.epochs = 100
+    args.batch_size = 256
 
     datasets, ontology, vocab, E = load_dataset()
-    ptrs, seed_ptrs, num_turns = datasets["train"].get_turn_ptrs(
+    ptrs, seed_ptrs, num_turns = datasets["test"].get_turn_ptrs(
         100, 0, sample_mode="singlepass")
 
     if args.model == "glad":
@@ -28,7 +30,7 @@ def main():
         logging.info('starting epoch {}'.format(epoch))
 
         # train and update parameters
-        for batch, batch_labels in datasets["train"].batch(
+        for batch, batch_labels in datasets["test"].batch(
                 batch_size=args.batch_size,
                 ptrs=ptrs,
                 shuffle=True):
@@ -38,9 +40,8 @@ def main():
             loss.backward()
             model.optimizer.step()
 
-    logging.info('Running dev evaluation')
-    dev_out = model.run_eval(datasets["test"], args)
-    pprint(dev_out)
+        dev_out = model.run_eval(datasets["test"], args)
+        pprint(dev_out)
 
 
 if __name__ == "__main__":
