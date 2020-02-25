@@ -27,7 +27,8 @@ class DSTEnv():
         datasets, self._ontology, vocab, Eword = load_dataset()
         self._dataset = datasets["train"]
         self._test_dataset = datasets["test"]
-        self._ptrs, self._support_ptrs, num_turns = self._dataset.get_turn_ptrs(
+        self._support_ptrs = np.array([], dtype=np.int32)
+        self._ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
         assert len(self._ptrs) >= args.pool_size
         self._num_turns = num_turns
@@ -54,9 +55,10 @@ class DSTEnv():
         obs = []
         preds = {}
         self._model.eval()
-        for batch, _ in self._dataset.batch(batch_size=self._args.inference_batch_size,
-                                            ptrs=self.current_ptrs,
-                                            shuffle=False):
+        for batch, _ in self._dataset.batch(
+                batch_size=self._args.inference_batch_size,
+                ptrs=self.current_ptrs,
+                shuffle=False):
             batch_preds = self._model.forward(batch, training=False)[1]
             if not preds:
                 for s in batch_preds.keys():
@@ -74,7 +76,11 @@ class DSTEnv():
             "Exhasuted labels": self._used_labels / self._args.label_budget,
         }
 
-        metrics.update({"Example label proportion": len(self._support_ptrs) / (self._args.pool_size + self._args.seed_size)})
+        metrics.update({
+            "Example label proportion":
+                len(self._support_ptrs) /
+                (self._args.pool_size + self._args.seed_size)
+        })
         if run_eval:
             metrics.update(self.eval())
 
@@ -99,6 +105,9 @@ class DSTEnv():
         if self._args.label_budget <= self._used_labels:
             return False
 
+        # Get label locations
+        label = np.where(label == 1)
+
         # Filter out redundant label requests
         label = [i for i in label if i not in self._support_ptrs]
 
@@ -106,11 +115,16 @@ class DSTEnv():
         label = label[:self._args.label_budget - self._used_labels]
 
         # Add new label ptrs to support ptrs
-        self._support_ptrs = np.concatenate([self._support_ptrs, self.current_ptrs[np.where(label == 1)]])
+        self._support_ptrs = np.concatenate(
+            [self._support_ptrs, self.current_ptrs[label]])
+        assert len(np.unique(self._support_ptrs)) == len(self._support_ptrs)
+
+        self._used_labels += len(label)
 
         return len(label) > 0
 
-    def fit(self, epochs=None, prefix=""):
+    def seed_fit(self, epochs=None, prefix=""):
+        # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
@@ -123,19 +137,67 @@ class DSTEnv():
         for epoch in range(epochs):
             print('Starting fit epoch {}.'.format(epoch))
 
-            for batch, batch_labels in self._dataset.batch(
-                    batch_size=self._args.batch_size,
-                    ptrs=self._support_ptrs,
-                    shuffle=True):
+            # Batch from seed, looping if compound
+            seed_iterator = self._dataset.batch(
+                batch_size=self._args.batch_size,
+                ptrs=self._seed_ptrs,
+                shuffle=True,
+                loop=False)
 
-                iteration += 1
-                print("Iteration: ", iteration)
+            for batch, batch_labels in seed_iterator:
                 self._model.zero_grad()
+                loss, _ = self._model.forward(batch,
+                                              batch_labels,
+                                              training=True)
+                seed.backward()
+                self._model.optimizer.step()
 
-                loss, scores = self._model.forward(batch,
-                                                   batch_labels,
+            # Report metrics, saving if stop metric is best
+            metrics = self.metrics(True)
+            print("Epoch metrics: ", metrics)
+            if best is None or metrics[self._args.stop] > best:
+                print("Saving best!")
+                self._model.save({}, identifier=prefix + str(self._args.seed))
+                best = metrics[self._args.stop]
+
+            self._model.train()
+
+    def fit(self, epochs=None, prefix=""):
+        # Initialize optimizer and trackers
+        if self._model.optimizer is None:
+            self._model.set_optimizer()
+
+        iteration = 0
+        best = None
+        if not epochs:
+            epochs = self._args.epochs
+        self._model.train()
+
+        for epoch in range(epochs):
+            print('Starting fit epoch {}.'.format(epoch))
+
+            # Batch from seed, looping if compound
+            seed_iterator = self._dataset.batch(
+                batch_size=self._args.comp_batch_size,
+                ptrs=self._seed_ptrs,
+                shuffle=True,
+                loop=True)
+            support_iterator = self._dataset.batch(
+                batch_size=self._args.batch_size,
+                ptrs=self._support_ptrs,
+                shuffle=True)
+            print("Fitting on {} datapoints.".format(len(self._support_ptrs)))
+
+            for batch, batch_labels in support_iterator:
+                seed_batch, seed_batch_labels = next(seed_iterator)
+                self._model.zero_grad()
+                loss, _ = self._model.forward(batch,
+                                              batch_labels,
+                                              training=True)
+                seed_loss, _ = self._model.forward(seed_batch,
+                                                   seed_batch_labels,
                                                    training=True)
-                loss.backward()
+                (loss + self._args.gamma * seed_loss).backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best

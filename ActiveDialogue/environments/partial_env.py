@@ -20,8 +20,7 @@ class PartialEnv(DSTEnv):
         self._support_masks = {}
         for s in self._ontology.slots:
             self._support_masks[s] = np.zeros(
-                (self._num_turns,
-                 len(self._ontology.values[s])),
+                (self._num_turns, len(self._ontology.values[s])),
                 dtype=np.int32)
 
         # All seed items should be fully labeled
@@ -78,14 +77,17 @@ class PartialEnv(DSTEnv):
         if len(label_ptrs):
             for s in self._ontology.slots:
                 self._support_masks[s][label_ptrs] = label[s]
-            self._support_ptrs = np.concatenate([self._support_ptrs, label_ptrs])
-            assert len(self._support_ptrs) == len(np.unique(self._support_ptrs))
+            self._support_ptrs = np.concatenate(
+                [self._support_ptrs, label_ptrs])
+            assert len(self._support_ptrs) == len(
+                np.unique(self._support_ptrs))
             self._used_labels += total_labels
             return True
 
         return False
 
     def fit(self, epochs=None, prefix=""):
+        # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
@@ -98,21 +100,34 @@ class PartialEnv(DSTEnv):
         for epoch in range(epochs):
             print('Starting fit epoch {}.'.format(epoch))
 
-            for batch, batch_labels, batch_ptrs in self._dataset.batch(
-                    batch_size=self._args.batch_size,
-                    ptrs=self._support_ptrs,
-                    shuffle=True,
-                    return_ptrs=True):
+            # Batch from seed, looping if compound
+            seed_iterator = self._dataset.batch(
+                batch_size=self._args.comp_batch_size,
+                ptrs=self._seed_ptrs,
+                shuffle=True,
+                loop=True)
+            support_iterator = self._dataset.batch(
+                batch_size=self._args.batch_size,
+                ptrs=self._support_ptrs,
+                shuffle=True,
+                return_ptrs=True)
+            print("Fitting on {} datapoints.".format(len(self._support_ptrs)))
 
-                iteration += 1
-                print("Iteration: ", iteration)
+            for batch, batch_labels, batch_ptrs in support_iterator:
+                seed_batch, seed_batch_labels = next(seed_iterator)
                 self._model.zero_grad()
-
-                loss, scores = self._model.partial_forward(batch,
-                                                   batch_labels,
-                                                   training=True,
-                                                   mask={s: v[batch_ptrs] for s, v in self._support_masks.items()})
-                loss.backward()
+                loss, _ = self._model.partial_forward(
+                    batch,
+                    batch_labels,
+                    training=True,
+                    mask={
+                        s: v[batch_ptrs]
+                        for s, v in self._support_masks.items()
+                    })
+                seed_loss, _ = self._model.forward(seed_batch,
+                                                   seed_batch_labels,
+                                                   training=True)
+                (loss + self._args.gamma * seed_loss).backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best

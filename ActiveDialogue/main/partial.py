@@ -23,17 +23,16 @@ def main():
     if args.seed_size:
         if not env.load_seed():
             print("No loaded seed. Training now.")
-            env.fit(args.seed_epochs, prefix="seed")
+            env.seed_fit(args.seed_epochs, prefix="seed")
             print("Seed completed.")
         else:
             print("Loaded seed.")
             if args.force_seed:
                 print("Training seed regardless.")
-                env.fit(args.seed_epochs, prefix="seed")
+                env.seed_fit(args.seed_epochs, prefix="seed")
         print("Current seed metrics:", env.metrics(True))
 
     ended = False
-    can_label = True
 
     i = 0
     with logger.train():
@@ -44,19 +43,18 @@ def main():
             logger.log_current_epoch(i)
             obs, preds = env.observe()
 
-            if can_label:
-                # Obtain label request from strategy
-                if args.strategy == "aggressive":
-                    label_request = aggressive(preds)
-                elif args.strategy == "random":
-                    label_request = random(preds)
-                elif args.strategy == "passive":
-                    label_request = passive(preds)
-                else:
-                    raise ValueError()
+            # Obtain label request from strategy
+            if args.strategy == "aggressive":
+                label_request = aggressive(preds)
+            elif args.strategy == "random":
+                label_request = random(preds)
+            elif args.strategy == "passive":
+                label_request = passive(preds)
+            else:
+                raise ValueError()
 
-                # Label solicitation
-                label_occured = env.label(label_request)
+            # Label solicitation
+            label_occured = env.label(label_request)
 
             # Environment stepping
             ended = env.step()
@@ -71,4 +69,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

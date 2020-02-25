@@ -120,7 +120,12 @@ class Dataset:
         return Ontology(sorted(list(slots)),
                         {k: sorted(list(v)) for k, v in values.items()})
 
-    def batch(self, batch_size, ptrs=None, shuffle=False, return_ptrs=False):
+    def batch(self,
+              batch_size,
+              ptrs=None,
+              shuffle=False,
+              return_ptrs=False,
+              loop=False):
         """Grab a batch of dialogue turns and labels
         Args:
             batch_size: batch size.
@@ -128,26 +133,30 @@ class Dataset:
                   all turns are included.
             shuffle: should the ordering of turns be shuffled?
         """
-        # Build array of relevant turn instances
-        if ptrs is None:
-            ptrs = np.arange(len(self.turns))
-        if shuffle:
-            ptrs = np.random.permutation(ptrs)
-        turns = self.turns[ptrs]
+        while True:
+            # Build array of relevant turn instances
+            if ptrs is None:
+                ptrs = np.arange(len(self.turns))
+            if shuffle:
+                ptrs = np.random.permutation(ptrs)
+            turns = self.turns[ptrs]
 
-        # Build array of labels
-        labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
+            # Build array of labels
+            labels = {s: v[ptrs] for s, v in self.turns_labels.items()}
 
-        # Yield from our list of turns
-        for i in range(0, len(turns), batch_size):
-            if return_ptrs:
-                yield turns[i:i + batch_size], {
-                    s: v[i:i + batch_size] for s, v in labels.items()
+            # Yield from our list of turns
+            for i in range(0, len(turns), batch_size):
+                if return_ptrs:
+                    yield turns[i:i + batch_size], {
+                        s: v[i:i + batch_size] for s, v in labels.items()
                     }, ptrs[i:i + batch_size]
-            else:
-                yield turns[i:i + batch_size], {
-                    s: v[i:i + batch_size] for s, v in labels.items()
-                }
+                else:
+                    yield turns[i:i + batch_size], {
+                        s: v[i:i + batch_size] for s, v in labels.items()
+                    }
+
+            if not loop:
+                break
 
     def get_labels(self, ptrs=None):
         """Return requested labels

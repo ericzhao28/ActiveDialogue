@@ -99,9 +99,6 @@ class BagEnv(DSTEnv):
 
         return False
 
-    def seed_fit(self, epochs=None, prefix=""):
-        return super().fit(epochs, prefix)
-
     def fit(self, epochs=None, prefix=""):
         if self._model.optimizer is None:
             self._model.set_optimizer()
@@ -111,71 +108,63 @@ class BagEnv(DSTEnv):
             epochs = self._args.epochs
         self._model.train()
 
-        seed_iterator = self._dataset.batch(
-            batch_size=self._args.batch_size,
-            ptrs=self._support_ptrs,
-            shuffle=True)
-
-        print("Training for {} epochs starting now.".format(epochs))
         for epoch in range(epochs):
-            print('starting epoch {}'.format(epoch))
+            print('Starting fit epoch {}.'.format(epoch))
+
+            # Batch from seed, looping if compound
+            seed_iterator = self._dataset.batch(
+                batch_size=self._args.comp_batch_size,
+                ptrs=self._seed_ptrs,
+                shuffle=True,
+                loop=True)
 
             shuffled_bag_idxs = np.random.permutation(
                 np.arange(len(self._bag_ptrs)))[:self._args.fit_items]
             print("Fitting on {} bags".format(len(shuffled_bag_idxs)))
+            support_iterator = self._dataset.batch(
+                batch_size=self._args.batch_size,
+                ptrs=self._bag_ptrs[shuffled_bag_idxs])
 
-            for batch_i, (bag_batch, _) in enumerate(
-                    self._dataset.batch(
-                        batch_size=self._args.bag_batch_size,
-                        ptrs=self._bag_ptrs[shuffled_bag_idxs])):
-                print("Batch: ", batch_i + 1)
-
+            for batch_i, (bag_batch, _) in enumerate(support_iterator):
+                seed_batch, seed_batch_labels = next(seed_iterator)
                 iteration += 1
                 self._model.zero_grad()
 
-                # Supervised loss
-                try:
-                    batch, batch_labels = next(seed_iterator)
-                except StopIteration:
-                    seed_iterator = self._dataset.batch(
-                        batch_size=self._args.batch_size,
-                        ptrs=self._support_ptrs,
-                        shuffle=True)
-                    batch, batch_labels = next(seed_iterator)
-                loss, scores = self._model.forward(batch,
-                                                   batch_labels,
-                                                   training=True)
-
                 # Validate bag feedbac
-                for bag_i in shuffled_bag_idxs[batch_i * self._args.bag_batch_size:
-                        (batch_i + 1) * self._args.bag_batch_size]:
+                for bag_i in shuffled_bag_idxs[batch_i *
+                                               self._args.batch_size:
+                                               (batch_i + 1) *
+                                               self._args.batch_size]:
                     bag_feedback = self._bag_feedback[bag_i]
                     for s in self._bag_idxs.keys():
-                        bag_label = self._dataset.get_labels([self._bag_ptrs[bag_i]])[s][0]
+                        bag_label = self._dataset.get_labels(
+                            [self._bag_ptrs[bag_i]])[s][0]
                         for label_i in self._bag_idxs[s][bag_i]:
-                            assert(bag_feedback == bag_label[label_i])
+                            assert (bag_feedback == bag_label[label_i])
 
                 # Bag loss computation
-                bloss, bscores = self._model.bag_forward(
+                loss, _ = self._model.bag_forward(
                     bag_batch, {
                         s:
                         np.array(v)[shuffled_bag_idxs[batch_i *
-                                                      self._args.bag_batch_size:
+                                                      self._args.batch_size:
                                                       (batch_i + 1) *
-                                                      self._args.bag_batch_size]]
+                                                      self._args.batch_size]]
                         for s, v in self._bag_idxs.items()
                     },
                     self._bag_feedback[
                         shuffled_bag_idxs[batch_i *
-                                          self._args.bag_batch_size:(batch_i +
+                                          self._args.batch_size:(batch_i +
                                                                  1) *
-                                          self._args.bag_batch_size]],
+                                          self._args.batch_size]],
                     training=True,
                     sl_reduction=self._args.sl_reduction,
                     optimistic_weighting=self._args.optimistic_weighting)
-
                 # Optimize the loss mixture
-                (self._args.gamma * loss + bloss).backward()
+                seed_loss, _ = self._model.forward(seed_batch,
+                                                   seed_batch_labels,
+                                                   training=True)
+                (loss + args.gamma * seed_loss).backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best

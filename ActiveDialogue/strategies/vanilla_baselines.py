@@ -4,10 +4,14 @@ import numpy as np
 
 
 def random(pred):
-    return np.random.randint(0, 2, len(pred))
+    batch_size = len(next(pred.values()))
+    return np.random.randint(0, 2, batch_size)
+
 
 def aggressive(pred):
-    return np.zeros(len(pred)) + 1
+    return passive(pred) + 1
+
 
 def passive(pred):
-    return np.zeros(len(pred))
+    batch_size = len(next(pred.values()))
+    return np.zeros(batch_size)

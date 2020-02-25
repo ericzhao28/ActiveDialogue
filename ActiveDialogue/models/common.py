@@ -221,7 +221,9 @@ class Model(nn.Module):
         ys = self.infer(batch)
         if training:
             keys = list(labels.keys())
-            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys], axis=1)).to(self.device)
+            flatlabels = torch.Tensor(
+                np.concatenate([labels[k] for k in keys],
+                               axis=1)).to(self.device)
             flatys = torch.cat([ys[k] for k in keys], dim=1)
             loss = F.binary_cross_entropy(flatys, flatlabels)
         else:
@@ -232,10 +234,16 @@ class Model(nn.Module):
         ys = self.infer(batch)
         if training:
             keys = list(labels.keys())
-            flatlabels = torch.Tensor(np.concatenate([labels[k] for k in keys], axis=1)).to(self.device)
+            flatlabels = torch.Tensor(
+                np.concatenate([labels[k] for k in keys],
+                               axis=1)).to(self.device)
             flatys = torch.cat([ys[k] for k in keys], dim=1)
-            flatmask = torch.Tensor(np.concatenate([mask[k] for k in keys], axis=1)).to(self.device)
-            loss = torch.mean(F.binary_cross_entropy(flatys, flatlabels, reduce='none').mul(flatmask))
+            flatmask = torch.Tensor(
+                np.concatenate([mask[k] for k in keys],
+                               axis=1)).to(self.device)
+            loss = torch.mean(
+                F.binary_cross_entropy(flatys, flatlabels,
+                                       reduce='none').mul(flatmask))
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}
@@ -254,7 +262,9 @@ class Model(nn.Module):
             weight = None
             for s in self.ontology.slots:
                 tbag = torch.zeros_like(ys[s])
-                tbag_idxs = np.array([(ii, j) for ii, i in enumerate(bag[s]) for j in i])
+                tbag_idxs = np.array([
+                    (ii, j) for ii, i in enumerate(bag[s]) for j in i
+                ])
                 tbag[tbag_idxs[:, 0], tbag_idxs[:, 1]] = 1
                 bag[s] = tbag.to(self.device)
 
@@ -275,12 +285,17 @@ class Model(nn.Module):
             flat_bag = torch.cat(flat_bag, dim=1)
 
             if sl_reduction:
-                loss = F.binary_cross_entropy(flat_ys, feedback.unsqueeze(1).expand_as(flat_ys), reduction='none')
+                loss = F.binary_cross_entropy(
+                    flat_ys,
+                    feedback.unsqueeze(1).expand_as(flat_ys),
+                    reduction='none')
                 loss = torch.sum(loss.mul(flat_bag))
             else:
-                loss = feedback * torch.sum(torch.log(flat_ys + 1e-8).mul(flat_bag))
+                loss = feedback * torch.sum(
+                    torch.log(flat_ys + 1e-8).mul(flat_bag))
                 flat_ys = torch.pow(flat_ys, flat_bag)
-                loss += (1 - feedback) * torch.log(1 - torch.prod(flat_ys) + 1e-8)
+                loss += (1 - feedback) * torch.log(1 - torch.prod(flat_ys) +
+                                                   1e-8)
             loss = torch.sum(loss / weight.unsqueeze(1))
         else:
             loss = torch.Tensor([0]).to(self.device)
