@@ -109,7 +109,7 @@ class DSTEnv():
         label = np.where(label == 1)
 
         # Filter out redundant label requests
-        label = [i for i in label if i not in self._support_ptrs]
+        label = [i for i in label if self.current_ptrs[i] not in self._support_ptrs]
 
         # Limit to label budget
         label = label[:self._args.label_budget - self._used_labels]
@@ -139,7 +139,7 @@ class DSTEnv():
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
-                batch_size=self._args.batch_size,
+                batch_size=self._args.seed_batch_size,
                 ptrs=self._seed_ptrs,
                 shuffle=True,
                 loop=False)
@@ -149,7 +149,7 @@ class DSTEnv():
                 loss, _ = self._model.forward(batch,
                                               batch_labels,
                                               training=True)
-                seed.backward()
+                loss.backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best

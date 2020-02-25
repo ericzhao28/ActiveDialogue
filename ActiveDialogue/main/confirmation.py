@@ -30,6 +30,7 @@ def main():
             if args.force_seed:
                 print("Training seed regardless.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
+        env.load_seed()
         print("Current seed metrics:", env.metrics(True))
 
     ended = False

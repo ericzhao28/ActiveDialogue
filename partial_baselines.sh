@@ -4,6 +4,7 @@ python3 -m ActiveDialogue.main.partial \
   --pool_size 5000 \
   --al_batch 256 \
   --batch_size 64 \
+  --seed_batch_size 64 \
   --comp_batch_size 32 \
   --inference_batch_size 256 \
   --gamma 0.3 \
@@ -14,5 +15,5 @@ python3 -m ActiveDialogue.main.partial \
   --seed_epochs 500 \
   --model glad \
   --device 0 \
-  --lr 0.001
+  --lr 0.001 \
   --force_seed
