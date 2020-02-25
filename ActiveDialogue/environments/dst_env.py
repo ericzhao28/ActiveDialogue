@@ -26,7 +26,7 @@ class DSTEnv():
         # Select train/test/val dataset split
         datasets, self._ontology, vocab, Eword = load_dataset()
         self._dataset = datasets["train"]
-        self._test_dataset = datasets["test"]
+        self._test_dataset = datasets["dev"]
         self._support_ptrs = np.array([], dtype=np.int32)
         self._ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.pool_size, args.seed_size, sample_mode=args.sample_mode)
