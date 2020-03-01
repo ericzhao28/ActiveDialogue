@@ -6,7 +6,7 @@ from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.confirmation_baselines import epsilon_cheat, random_singlets, passive
-from ActiveDialogue.strategies.uncertainties import lc_singlet, bag_singlet
+from ActiveDialogue.strategies.uncertainties import lc_singlet, bald_singlet
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 
 
