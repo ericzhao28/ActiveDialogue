@@ -101,7 +101,7 @@ class DSTEnv():
 
     @property
     def can_label(self):
-        return self._args.label_budget > self._used_labels:
+        return self._args.label_budget > self._used_labels
 
     def label(self, label):
         """Fully label ptrs according to list of idxs"""
@@ -113,7 +113,9 @@ class DSTEnv():
         label = np.where(label == 1)
 
         # Filter out redundant label requests
-        label = [i for i in label if self.current_ptrs[i] not in self._support_ptrs]
+        label = [
+            i for i in label if self.current_ptrs[i] not in self._support_ptrs
+        ]
 
         # Limit to label budget
         label = label[:self._args.label_budget - self._used_labels]
