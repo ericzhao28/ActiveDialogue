@@ -1,6 +1,6 @@
 """In-dialogue selective sampling for slot labeling tasks."""
 
-from ActiveDialogue.environments.dst_env import DSTEnv
+from ActiveDialogue.environments.partial_env import PartialEnv
 import torch
 import numpy as np
 import random
@@ -9,7 +9,7 @@ import pdb
 from pprint import pprint
 
 
-class BagEnv(DSTEnv):
+class BagEnv(PartialEnv):
 
     def __init__(self, load_dataset, model_cls, args):
         """Initialize environment and cache datasets."""
@@ -24,7 +24,7 @@ class BagEnv(DSTEnv):
             self._bag_idxs[s] = []
 
     def metrics(self, run_eval=False):
-        metrics = super().metric(run_eval)
+        metrics = super().metrics(run_eval)
 
         total_size = 0
         for s in self._ontology.slots:
@@ -50,6 +50,7 @@ class BagEnv(DSTEnv):
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
         label_idxs = []
+        print(batch_size)
         for i in range(batch_size):
             for s in self._ontology.slots:
                 if np.any(label[s][i]):
@@ -62,9 +63,13 @@ class BagEnv(DSTEnv):
             label_idxs = label_idxs[:max(
                 0, self._args.label_budget - self._used_labels)]
         num_labels = len(label_idxs)
+        print(label_idxs)
+        print("\n\n")
 
         # Grab ptrs and labels that are valid
         for s, v in label.items():
+            print(label[s])
+            print(label_idxs)
             label[s] = label[s][label_idxs]
         label_ptrs = self.current_ptrs[label_idxs]
 

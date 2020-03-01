@@ -44,11 +44,11 @@ def main():
 
     if use_strategy:
         if args.threshold_strategy == "fixed":
-            strategy = FixedThresholdStrategy(0.5, strategy)
+            strategy = FixedThresholdStrategy(strategy, args)
         elif args.threshold_strategy == "variable":
-            strategy = VariableThresholdStrategy(0.5, strategy)
+            strategy = VariableThresholdStrategy(strategy, args)
         elif args.threshold_strategy == "randomvariable":
-            strategy = StochasticVariableThresholdStrategy(0.5, strategy)
+            strategy = StochasticVariableThresholdStrategy(strategy, args)
 
     ended = False
     i = 0

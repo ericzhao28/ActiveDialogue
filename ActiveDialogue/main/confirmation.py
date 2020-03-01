@@ -44,11 +44,11 @@ def main():
 
     if use_strategy:
         if args.threshold_strategy == "fixed":
-            strategy = FixedThresholdStrategy(0.5, strategy)
+            strategy = FixedThresholdStrategy(strategy, args)
         elif args.threshold_strategy == "variable":
-            strategy = VariableThresholdStrategy(0.5, strategy)
+            strategy = VariableThresholdStrategy(strategy, args)
         elif args.threshold_strategy == "randomvariable":
-            strategy = StochasticVariableThresholdStrategy(0.5, strategy)
+            strategy = StochasticVariableThresholdStrategy(strategy, args)
 
     ended = False
     i = 0
@@ -64,11 +64,11 @@ def main():
                     # Obtain label request from strategy
                     obs, preds = env.observe()
                     if args.strategy == "epsiloncheat":
-                        label_request = epsilon_cheat(obs, env.leak_labels())
+                        label_request = epsilon_cheat(preds, env.leak_labels())
                     elif args.strategy == "randomsinglets":
-                        label_request = random_singlets(obs)
+                        label_request = random_singlets(preds)
                     elif args.strategy == "passive":
-                        label_request = passive(obs)
+                        label_request = passive(preds)
                     elif use_strategy:
                         label_request = strategy.observe(preds)
                     else:

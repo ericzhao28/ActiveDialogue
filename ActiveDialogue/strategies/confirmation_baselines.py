@@ -3,21 +3,17 @@
 import numpy as np
 import pdb
 import random
+from ActiveDialogue.utils import split, unsplit
 
 
 def random_singlets(pred):
-    chosen_keys = []
-    label = {}
-    for i, key in enumerate(pred.keys()):
-        if not len(chosen_keys):
-            batch_size = len(pred[key])
-            chosen_keys = np.array(
-                np.random.randint(0, len(pred.keys()), batch_size))
-        idxs = np.where(chosen_keys == i)
-        label[key] = np.zeros(pred[key].shape)
-        label_idxs = np.random.randint(0, len(pred[key][0]), len(idxs))
-        label[key][idxs, label_idxs] = 1
-    return label
+    apred, legend = split(pred)
+    assert len(apred.shape) == 2
+    label = np.zeros_like(apred)
+    label_idxs = np.random.randint(0, apred.shape[1], apred.shape[0])
+    for i, j in enumerate(label_idxs):
+        label[i, j] = 1
+    return unsplit(label, list(pred.keys()), legend)
 
 
 def passive(pred):

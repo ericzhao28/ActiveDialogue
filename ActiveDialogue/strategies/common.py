@@ -1,17 +1,25 @@
 """Implementation of selective sampling strategy categories"""
 
 import numpy as np
+from ActiveDialogue.utils import split, unsplit
 
 
-class FixedThresholdStrategy():
-
-    def __init__(self, init_threshold, measure_uncertainty):
-        self._threshold = init_threshold
+class ThresholdStrategy():
+    def __init__(self, measure_uncertainty, args):
         self._measure_uncertainty = measure_uncertainty
+        self._threshold = args.init_threshold
+        self._threshold_scaler = args.threshold_scaler
+        self._noise_std = args.threshold_noise_std
 
     def observe(self, obs):
-        value = self._measure_uncertainty(obs)
-        return value > self._threshold
+        aobs, legend = split(obs)
+        value = self._measure_uncertainty(aobs) > self.threshold
+        value = unsplit(value, list(obs.keys()), legend)
+        return value
+
+    @property
+    def threshold(self):
+        pass
 
     def update(self, feedback):
         pass
@@ -19,17 +27,18 @@ class FixedThresholdStrategy():
     def no_op_update(self):
         pass
 
+class FixedThresholdStrategy(ThresholdStrategy):
 
-class VariableThresholdStrategy():
+    @property
+    def threshold(self):
+        return self._threshold
 
-    def __init__(self, init_threshold, measure_uncertainty):
-        self._threshold = init_threshold
-        self._measure_uncertainty = measure_uncertainty
 
-    def observe(self, obs):
-        value = self._measure_uncertainty(obs)
-        if value > self._threshold:
-            return
+class VariableThresholdStrategy(ThresholdStrategy):
+
+    @property
+    def threshold(self):
+        return self._threshold
 
     def no_op_update(self):
         self._threshold = self._threshold * (1 - self._threshold_scaler)
@@ -39,18 +48,12 @@ class VariableThresholdStrategy():
             self._threshold = self._threshold * (1 + self._threshold_scaler)
 
 
-class StochasticVariableThresholdStrategy():
+class StochasticVariableThresholdStrategy(ThresholdStrategy):
 
-    def __init__(self, init_threshold, measure_uncertainty, noise_std):
-        self._threshold = init_threshold
-        self._measure_uncertainty = measure_uncertainty
-        self._noise_std = noise_std
-
-    def observe(self, obs):
-        value = self._measure_uncertainty(obs) * np.random.normal(
+    @property
+    def threshold(self):
+        return self._threshold * np.random.normal(
             mean=1, std=self._noise)
-        if value > self._threshold:
-            return
 
     def no_op_update(self):
         self._threshold = self._threshold * (1 - self._threshold_scaler)

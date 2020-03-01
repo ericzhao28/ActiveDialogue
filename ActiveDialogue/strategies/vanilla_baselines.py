@@ -13,6 +13,5 @@ def aggressive(pred):
 
 
 def passive(pred):
-    print(pred)
     batch_size = len(next(iter(pred.values())))
     return np.zeros(batch_size)
