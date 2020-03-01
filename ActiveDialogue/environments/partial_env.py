@@ -43,12 +43,12 @@ class PartialEnv(DSTEnv):
         return metrics
 
     def label(self, label):
-        label = {s: np.array(v, dtype=np.int32) for s, v in label.items()}
-        batch_size = len(list(label.values())[0])
-
         # No more labeling allowed
         if self._args.label_budget <= self._used_labels:
-            return False
+            raise ValueError()
+
+        label = {s: np.array(v, dtype=np.int32) for s, v in label.items()}
+        batch_size = len(list(label.values())[0])
 
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
@@ -82,9 +82,9 @@ class PartialEnv(DSTEnv):
             assert len(self._support_ptrs) == len(
                 np.unique(self._support_ptrs))
             self._used_labels += total_labels
-            return True
+            return total_labels
 
-        return False
+        return 0
 
     def fit(self, epochs=None, prefix=""):
         # Initialize optimizer and trackers

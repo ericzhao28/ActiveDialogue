@@ -1,5 +1,4 @@
 from comet_ml import Experiment
-import numpy as np
 from ActiveDialogue.environments.bag_env import BagEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
@@ -7,6 +6,8 @@ from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.confirmation_baselines import epsilon_cheat, random_singlets, passive
+from ActiveDialogue.strategies.uncertainties import lc_singlet, bag_singlet
+from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 
 
 def main():
@@ -33,9 +34,23 @@ def main():
         env.load_seed()
         print("Current seed metrics:", env.metrics(True))
 
-    ended = False
-    can_label = True
+    use_strategy = False
+    if args.strategy == "lc":
+        use_strategy = True
+        strategy = lc_singlet
+    elif args.strategy == "bald":
+        use_strategy = True
+        strategy = bald_singlet
 
+    if use_strategy:
+        if args.threshold_strategy == "fixed":
+            strategy = FixedThresholdStrategy(0.5, strategy)
+        elif args.threshold_strategy == "variable":
+            strategy = VariableThresholdStrategy(0.5, strategy)
+        elif args.threshold_strategy == "randomvariable":
+            strategy = StochasticVariableThresholdStrategy(0.5, strategy)
+
+    ended = False
     i = 0
     with logger.train():
         while not ended:
@@ -43,39 +58,30 @@ def main():
 
             # Observe environment state
             logger.log_current_epoch(i)
-            raw_obs, obs_dist = env.observe()
 
-            if can_label:
-                for j in range(args.label_timeout):
+            for j in range(args.label_timeout):
+                if env.can_label:
                     # Obtain label request from strategy
+                    obs, preds = env.observe()
                     if args.strategy == "epsiloncheat":
-                        label_request = epsilon_cheat(obs_dist,
+                        label_request = epsilon_cheat(obs,
                                                       env.leak_labels())
                     elif args.strategy == "randomsinglets":
-                        label_request = random_singlets(obs_dist)
+                        label_request = random_singlets(obs)
                     elif args.strategy == "passive":
-                        label_request = passive(obs_dist)
+                        label_request = passive(obs)
+                    elif use_strategy:
+                        label_request = strategy.observe(preds)
                     else:
                         raise ValueError()
 
-                    # Check if request is trivial
-                    request_empty = True
-                    for v in label_request.values():
-                        if np.any(v):
-                            request_empty = False
-                            break
-                    if args.strategy == "passive":
-                        assert request_empty
-                    if request_empty:
-                        break
-
                     # Label solicitation
-                    label_occured = env.label(label_request)
-
-                    # At this point, label request is non trivial but no
-                    # labeling occured, so we assume budget is exhausted.
-                    if not label_occured:
-                        can_label = False
+                    labeled = env.label(label_request)
+                    if use_strategy:
+                        if labeled > 0:
+                            strategy.update(labeled)
+                        else:
+                            strategy.no_op_update()
 
             # Environment stepping
             ended = env.step()

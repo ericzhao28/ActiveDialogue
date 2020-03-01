@@ -99,11 +99,15 @@ class DSTEnv():
             min(self._current_idx + self._args.al_batch,
                 self._args.pool_size))]
 
+    @property
+    def can_label(self):
+        return self._args.label_budget > self._used_labels:
+
     def label(self, label):
         """Fully label ptrs according to list of idxs"""
         # No more labeling allowed
         if self._args.label_budget <= self._used_labels:
-            return False
+            raise ValueError()
 
         # Get label locations
         label = np.where(label == 1)
@@ -121,7 +125,7 @@ class DSTEnv():
 
         self._used_labels += len(label)
 
-        return len(label) > 0
+        return len(label)
 
     def seed_fit(self, epochs=None, prefix=""):
         # Initialize optimizer and trackers

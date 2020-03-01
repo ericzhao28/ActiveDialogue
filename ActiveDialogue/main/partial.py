@@ -1,5 +1,4 @@
 from comet_ml import Experiment
-import numpy as np
 from ActiveDialogue.environments.partial_env import PartialEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
@@ -7,6 +6,8 @@ from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.partial_baselines import aggressive, random, passive
+from ActiveDialogue.strategies.uncertainties import partial_lc, partial_bald
+from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 
 
 def main():
@@ -33,8 +34,23 @@ def main():
         env.load_seed()
         print("Current seed metrics:", env.metrics(True))
 
-    ended = False
+    use_strategy = False
+    if args.strategy == "lc":
+        use_strategy = True
+        strategy = partial_lc
+    elif args.strategy == "bald":
+        use_strategy = True
+        strategy = partial_bald
 
+    if use_strategy:
+        if args.threshold_strategy == "fixed":
+            strategy = FixedThresholdStrategy(0.5, strategy)
+        elif args.threshold_strategy == "variable":
+            strategy = VariableThresholdStrategy(0.5, strategy)
+        elif args.threshold_strategy == "randomvariable":
+            strategy = StochasticVariableThresholdStrategy(0.5, strategy)
+
+    ended = False
     i = 0
     with logger.train():
         while not ended:
@@ -42,20 +58,28 @@ def main():
 
             # Observe environment state
             logger.log_current_epoch(i)
-            obs, preds = env.observe()
 
-            # Obtain label request from strategy
-            if args.strategy == "aggressive":
-                label_request = aggressive(preds)
-            elif args.strategy == "random":
-                label_request = random(preds)
-            elif args.strategy == "passive":
-                label_request = passive(preds)
-            else:
-                raise ValueError()
+            if env.can_label:
+                # Obtain label request from strategy
+                obs, preds = env.observe()
+                if args.strategy == "aggressive":
+                    label_request = aggressive(preds)
+                elif args.strategy == "random":
+                    label_request = random(preds)
+                elif args.strategy == "passive":
+                    label_request = passive(preds)
+                elif use_strategy:
+                    label_request = strategy.observe(preds)
+                else:
+                    raise ValueError()
 
-            # Label solicitation
-            label_occured = env.label(label_request)
+                # Label solicitation
+                labeled = env.label(label_request)
+                if use_strategy:
+                    if labeled > 0:
+                        strategy.update(labeled)
+                    else:
+                        strategy.no_op_update()
 
             # Environment stepping
             ended = env.step()

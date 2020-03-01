@@ -11,10 +11,12 @@ class FixedThresholdStrategy():
 
     def observe(self, obs):
         value = self._measure_uncertainty(obs)
-        if value > self._threshold:
-            return
+        return value > self._threshold
 
     def update(self, feedback):
+        pass
+
+    def no_op_update(self):
         pass
 
 
@@ -32,8 +34,9 @@ class VariableThresholdStrategy():
     def no_op_update(self):
         self._threshold = self._threshold * (1 - self._threshold_scaler)
 
-    def update(self):
-        self._threshold = self._threshold * (1 + self._threshold_scaler)
+    def update(self, n=1):
+        for i in range(n):
+            self._threshold = self._threshold * (1 + self._threshold_scaler)
 
 
 class StochasticVariableThresholdStrategy():
@@ -52,5 +55,6 @@ class StochasticVariableThresholdStrategy():
     def no_op_update(self):
         self._threshold = self._threshold * (1 - self._threshold_scaler)
 
-    def update(self):
-        self._threshold = self._threshold * (1 + self._threshold_scaler)
+    def update(self, n=1):
+        for i in range(n):
+            self._threshold = self._threshold * (1 + self._threshold_scaler)

@@ -45,7 +45,7 @@ class BagEnv(DSTEnv):
 
         # No more labeling allowed
         if self._args.label_budget <= self._used_labels:
-            return False
+            raise ValueError()
 
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
@@ -95,9 +95,9 @@ class BagEnv(DSTEnv):
             self._bag_ptrs = np.concatenate([self._bag_ptrs, label_ptrs])
             self._used_labels += num_labels
 
-            return True
+            return num_labels
 
-        return False
+        return 0
 
     def fit(self, epochs=None, prefix=""):
         if self._model.optimizer is None:
