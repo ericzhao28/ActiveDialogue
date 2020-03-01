@@ -10,8 +10,7 @@ def bald(preds):
 
 
 def partial_lc(pred):
-    # TODO: transform pred?
-    return 1 - np.min(np.array([pred, 1 - pred]), axis=0)
+    return np.min(np.array([pred, 1 - pred]), axis=0)
 
 
 def partial_bald(preds):

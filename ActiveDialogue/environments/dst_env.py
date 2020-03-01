@@ -135,7 +135,7 @@ class DSTEnv():
             self._model.set_optimizer()
 
         iteration = 0
-        best = None
+        best = self.metrics(True)[self._args.stop]
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
@@ -161,7 +161,7 @@ class DSTEnv():
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
-            if best is None or metrics[self._args.stop] > best:
+            if metrics[self._args.stop] > best:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics[self._args.stop]

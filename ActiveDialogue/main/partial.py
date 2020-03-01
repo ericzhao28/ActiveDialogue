@@ -8,6 +8,7 @@ from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.partial_baselines import aggressive, random, passive
 from ActiveDialogue.strategies.uncertainties import partial_lc, partial_bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
+import numpy as np
 
 
 def main():
@@ -76,10 +77,9 @@ def main():
                 # Label solicitation
                 labeled = env.label(label_request)
                 if use_strategy:
-                    if labeled > 0:
-                        strategy.update(labeled)
-                    else:
-                        strategy.no_op_update()
+                    strategy.update(sum([np.sum(s.flatten()) for s in label_request.values()]),
+                                    sum([np.sum(np.ones_like(s).flatten()) for s in label_request.values()])
+                                    )
 
             # Environment stepping
             ended = env.step()

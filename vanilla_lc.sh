@@ -38,5 +38,6 @@ python3 -m ActiveDialogue.main.vanilla \
   --model glad \
   --device 0 \
   --lr 0.001 \
-  --threshold_strategy fixed \
-  --init_threshold 0.2
+  --threshold_strategy variable \
+  --init_threshold 0.4 \
+  --threshold_scaler 0.01 \

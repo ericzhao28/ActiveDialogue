@@ -8,6 +8,7 @@ from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.vanilla_baselines import aggressive, random, passive
 from ActiveDialogue.strategies.uncertainties import lc, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
+import numpy as np
 
 
 def main():
@@ -44,11 +45,11 @@ def main():
 
     if use_strategy:
         if args.threshold_strategy == "fixed":
-            strategy = FixedThresholdStrategy(strategy, args)
+            strategy = FixedThresholdStrategy(strategy, args, False)
         elif args.threshold_strategy == "variable":
-            strategy = VariableThresholdStrategy(strategy, args)
+            strategy = VariableThresholdStrategy(strategy, args, False)
         elif args.threshold_strategy == "randomvariable":
-            strategy = StochasticVariableThresholdStrategy(strategy, args)
+            strategy = StochasticVariableThresholdStrategy(strategy, args, False)
 
     ended = False
     i = 0
@@ -76,10 +77,9 @@ def main():
                 # Label solicitation
                 labeled = env.label(label_request)
                 if use_strategy:
-                    if labeled > 0:
-                        strategy.update(labeled)
-                    else:
-                        strategy.no_op_update()
+                    strategy.update(np.sum(label_request.flatten()),
+                                    np.sum(np.ones_like(label_request.flatten()))
+                                    )
 
             # Environment stepping
             ended = env.step()

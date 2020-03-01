@@ -77,10 +77,9 @@ def main():
                     # Label solicitation
                     labeled = env.label(label_request)
                     if use_strategy:
-                        if labeled > 0:
-                            strategy.update(labeled)
-                        else:
-                            strategy.no_op_update()
+                        strategy.update(np.sum(label_request.flatten()),
+                                        np.sum(np.ones_like(label_request.flatten()))
+                                        )
 
             # Environment stepping
             ended = env.step()
