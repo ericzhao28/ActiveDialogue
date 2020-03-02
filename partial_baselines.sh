@@ -1,5 +1,5 @@
 python3 -m ActiveDialogue.main.partial \
-  --strategy aggressive \
+  --strategy $1 \
   --label_budget 500000 \
   --pool_size 5000 \
   --al_batch 256 \
@@ -7,13 +7,16 @@ python3 -m ActiveDialogue.main.partial \
   --seed_batch_size 64 \
   --comp_batch_size 32 \
   --inference_batch_size 256 \
-  --gamma 0.3 \
+  --gamma 0.5 \
   --eval_period 1 \
-  --seed 8000 \
+  --seed 4000 \
   --seed_size 50 \
-  --epochs 20 \
+  --epochs 8 \
   --seed_epochs 500 \
   --model glad \
   --device 0 \
   --lr 0.001 \
-  --force_seed
+  --threshold_strategy $2 \
+  --init_threshold 0.05 \
+  --threshold_scaler 0.00005 \
+  --rejection_ratio 16 \

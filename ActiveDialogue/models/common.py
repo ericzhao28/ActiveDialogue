@@ -242,8 +242,8 @@ class Model(nn.Module):
                 np.concatenate([mask[k] for k in keys],
                                axis=1)).to(self.device)
             loss = torch.mean(
-                F.binary_cross_entropy(flatys, flatlabels,
-                                       reduce='none').mul(flatmask))
+                torch.sum(F.binary_cross_entropy(flatys, flatlabels,
+                                       reduce='none').mul(flatmask), axis=1))
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}

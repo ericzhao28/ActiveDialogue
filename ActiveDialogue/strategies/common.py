@@ -2,6 +2,7 @@
 
 import numpy as np
 from ActiveDialogue.utils import split, unsplit
+import math
 
 
 class ThresholdStrategy():
@@ -10,13 +11,11 @@ class ThresholdStrategy():
         self._threshold = args.init_threshold
         self._threshold_scaler = args.threshold_scaler
         self._noise_std = args.threshold_noise_std
+        self._rejection_ratio = args.rejection_ratio
         self._need_unsplit = need_unsplit
 
     def observe(self, obs):
         aobs, legend = split(obs)
-        if True:
-            print(self._measure_uncertainty(aobs))
-            print(self.threshold)
         value = self._measure_uncertainty(aobs) > self.threshold
         value = np.array(value, dtype=np.int32)
         if self._need_unsplit:
@@ -28,6 +27,8 @@ class ThresholdStrategy():
         pass
 
     def update(self, n, m):
+        print(self._threshold)
+        print(n, m)
         pass
 
 class FixedThresholdStrategy(ThresholdStrategy):
@@ -42,11 +43,8 @@ class VariableThresholdStrategy(FixedThresholdStrategy):
     def update(self, n, m):
         print(self._threshold)
         print(n, m)
-        for i in range(n):
-            self._threshold = self._threshold * (1 + self._threshold_scaler)
-        if m - n > 0:
-            for i in range(m - n):
-                self._threshold = self._threshold * (1 - self._threshold_scaler)
+        self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, n)
+        self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, float(m-n) / self._rejection_ratio)
         print(self._threshold)
 
 
@@ -55,4 +53,4 @@ class StochasticVariableThresholdStrategy(VariableThresholdStrategy):
     @property
     def threshold(self):
         return self._threshold * np.random.normal(
-            mean=1, std=self._noise)
+            loc=1, scale=self._noise_std)

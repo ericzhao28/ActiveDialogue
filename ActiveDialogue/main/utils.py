@@ -23,6 +23,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--threshold_strategy', type=str, default="fixed")
     parser.add_argument('--threshold_scaler', type=float, default=0.95)
+    parser.add_argument('--rejection_ratio', type=float, default=16.0)
     parser.add_argument('--init_threshold', type=float, default=0.5)
     parser.add_argument('--threshold_noise_std', type=float, default=0.05)
     parser.add_argument('--seed_batch_size', type=int, default=64)
