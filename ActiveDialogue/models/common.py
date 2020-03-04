@@ -136,7 +136,7 @@ class Model(nn.Module):
     def run_pred(self, dev, args):
         self.eval()
         predictions = []
-        for batch, batch_labels in dev.batch(batch_size=args.batch_size):
+        for batch, batch_labels in dev.batch(batch_size=args.seed_batch_size):
             loss, scores = self.forward(batch, batch_labels)
             predictions += self.extract_predictions(scores)
         return predictions
