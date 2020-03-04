@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/home/ubuntu/anaconda3/lib/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/home/ubuntu/anaconda3/lib/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/main/confirmation.py", line 92, in <module>
+    main()
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/main/confirmation.py", line 88, in main
+    env.fit()
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/environments/bag_env.py", line 163, in fit
+    optimistic_weighting=self._args.optimistic_weighting)
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/models/common.py", line 268, in bag_forward
+    tbag[tbag_idxs[:, 0], tbag_idxs[:, 1]] = 1
+IndexError: too many indices for array
+COMET INFO: ----------------------------
+
+Fitting on 898 datapoints.
+Epoch metrics:  {'Stream progress': 0.4608, 'Exhasuted label budget': 0.093649999999999997, 'Exhasuted labels': 1873, 'Example label proportion': 0.1778217821782178, 'turn_inform': 0.89397590361445778, 'tu
+rn_request': 0.96144578313253015, 'joint_goal': 0.77831325301204823, 'Bit label proportion': 0.18464116719242901}
+Traceback (most recent call last):
+  File "/home/ubuntu/anaconda3/lib/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/home/ubuntu/anaconda3/lib/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/main/partial.py", line 92, in <module>
+    main()
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/main/partial.py", line 79, in main
+    labeled = env.label(label_request)
+  File "/home/ubuntu/projects/ActiveDialogue/ActiveDialogue/environments/partial_env.py", line 83, in label
+    np.unique(self._support_ptrs))
+AssertionError
+COMET INFO: -------------------------

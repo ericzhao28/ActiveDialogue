@@ -1,7 +1,22 @@
-# python3 -m ActiveDialogue.main.naive_baselines --strategy epsiloncheat --label_timeout 1 --label_budget 10000 --pool_size 50000 --al_batch 512 --fit_items 1024 --batch_size 64 --gamma 0.1 --eval_period 1 --seed 69 --seed_size 100 --epochs 4 --seed_epochs 300 --model glad --device 0 --lr 0.001 --force_seed
-python3 -m ActiveDialogue.main.confirmation --strategy epsiloncheat --label_timeout 1 --label_budget 10000 --pool_size 50000 --al_batch 512 --fit_items 1024 --bag_batch_size 256 --inference_batch_size 256 --batch_size 32 --gamma 0.5 --eval_period 1 --seed 99 --seed_size 1 --epochs 4 --seed_epochs 300 --model glad --device 0 --lr 0.0002 --sl_reduction --optimistic_weighting
-
-# python3 -m ActiveDialogue.main.naive_baselines --strategy epsiloncheat --label_timeout 1 --label_budget 10000 --pool_size 50000 --al_batch 512 --fit_items 1024 --batch_size 64 --comp_batch_size 32 --gamma 0.1 --eval_period 1 --seed 100 --seed_size 599 --epochs 4 --seed_epochs 300 --model glad --device 0 --lr 0.001
-
-# python3 -m ActiveDialogue.main.naive_baselines --strategy epsiloncheat --label_timeout 30 --label_budget 1000000 --pool_size 50000 --al_batch 2048 --fit_items 4096 --batch_size 64 --eval_period 1 --recency_bias 0 --seed 9 --seed_size 0 --epochs 4 --device 0
-# python3 -m ActiveDialogue.main.naive_baselines --strategy randomsinglets --label_timeout 30 --label_budget 1000000 --pool_size 50000 --al_batch 2048 --fit_items 4096 --batch_size 64 --eval_period 1 --recency_bias 0 --seed 9 --seed_size 0 --epochs 4 --device 0
+python3 -m ActiveDialogue.main.confirmation \
+  --strategy epsiloncheat \
+  --label_budget 50000 \
+  --pool_size 5000 \
+  --al_batch 128 \
+  --batch_size 64 \
+  --seed_batch_size 64 \
+  --comp_batch_size 32 \
+  --inference_batch_size 128 \
+  --gamma 0.5 \
+  --eval_period 1 \
+  --seed 4000 \
+  --seed_size 50 \
+  --epochs 8 \
+  --seed_epochs 500 \
+  --model glad \
+  --device 0 \
+  --lr 0.001 \
+  --threshold_strategy variable \
+  --init_threshold 0.1 \
+  --threshold_scaler 0.00005 \
+  --rejection_ratio 32 \

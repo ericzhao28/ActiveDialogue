@@ -10,7 +10,7 @@ from pprint import pprint
 
 class DSTEnv():
 
-    def __init__(self, load_dataset, model_cls, args):
+    def __init__(self, load_dataset, model_cls, args, logger):
         """Initialize environment and cache datasets."""
 
         np.random.seed(args.seed)
@@ -18,6 +18,7 @@ class DSTEnv():
         random.seed(args.seed)
 
         self._args = args
+        self._logger = logger
 
         # Position in stream
         self._current_idx = 0
@@ -73,7 +74,8 @@ class DSTEnv():
     def metrics(self, run_eval=False):
         metrics = {
             "Stream progress": self._current_idx / self._args.pool_size,
-            "Exhasuted labels": self._used_labels / self._args.label_budget,
+            "Exhasuted label budget": self._used_labels / self._args.label_budget,
+            "Exhasuted labels": self._used_labels,
         }
 
         metrics.update({
@@ -209,6 +211,8 @@ class DSTEnv():
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
+            for k, v in metrics.items():
+                self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))

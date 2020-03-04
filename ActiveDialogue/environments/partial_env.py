@@ -11,10 +11,10 @@ from pprint import pprint
 
 class PartialEnv(DSTEnv):
 
-    def __init__(self, load_dataset, model_cls, args):
+    def __init__(self, load_dataset, model_cls, args, logger):
         """Initialize environment and cache datasets."""
 
-        super().__init__(load_dataset, model_cls, args)
+        super().__init__(load_dataset, model_cls, args, logger)
 
         # Initialize mask of viewable data points
         self._support_masks = {}
@@ -79,8 +79,8 @@ class PartialEnv(DSTEnv):
                 self._support_masks[s][label_ptrs] = label[s]
             self._support_ptrs = np.concatenate(
                 [self._support_ptrs, label_ptrs])
-            assert len(self._support_ptrs) == len(
-                np.unique(self._support_ptrs))
+            # assert len(self._support_ptrs) == len(
+            #     np.unique(self._support_ptrs))
             self._used_labels += total_labels
             return total_labels
 
@@ -133,6 +133,8 @@ class PartialEnv(DSTEnv):
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
+            for k, v in metrics.items():
+                self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))

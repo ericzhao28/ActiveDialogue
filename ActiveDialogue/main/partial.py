@@ -21,17 +21,18 @@ def main():
     elif args.model == "gce":
         model_arch = GCE
 
-    env = PartialEnv(load_dataset, model_arch, args)
+    env = PartialEnv(load_dataset, model_arch, args, logger)
     if args.seed_size:
-        if not env.load_seed():
-            print("No loaded seed. Training now.")
-            env.seed_fit(args.seed_epochs, prefix="seed")
-            print("Seed completed.")
-        else:
-            print("Loaded seed.")
-            if args.force_seed:
-                print("Training seed regardless.")
+        with logger.train():
+            if not env.load_seed():
+                print("No loaded seed. Training now.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
+                print("Seed completed.")
+            else:
+                print("Loaded seed.")
+                if args.force_seed:
+                    print("Training seed regardless.")
+                    env.seed_fit(args.seed_epochs, prefix="seed")
         env.load_seed()
         print("Current seed metrics:", env.metrics(True))
 
@@ -85,11 +86,6 @@ def main():
             ended = env.step()
             # Fit every al_batch of items
             env.fit()
-
-            # Report metrics to stdout and comet
-            for k, v in env.metrics(i % args.eval_period == 0).items():
-                print(k, v)
-                logger.log_metric(k, v, step=i)
 
 
 if __name__ == "__main__":

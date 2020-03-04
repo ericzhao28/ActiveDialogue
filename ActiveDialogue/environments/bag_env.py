@@ -11,10 +11,10 @@ from pprint import pprint
 
 class BagEnv(PartialEnv):
 
-    def __init__(self, load_dataset, model_cls, args):
+    def __init__(self, load_dataset, model_cls, args, logger):
         """Initialize environment and cache datasets."""
 
-        super().__init__(load_dataset, model_cls, args)
+        super().__init__(load_dataset, model_cls, args, logger)
 
         # Support set, initialize masks and labels
         self._bag_ptrs = np.array([], dtype=np.int32)
@@ -35,6 +35,8 @@ class BagEnv(PartialEnv):
         metrics.update({"Bit label proportion": labeled_size / total_size})
         metrics.update(
             {"Bag proportion": len(self._bag_ptrs) / self._num_turns})
+        metrics.update(
+            {"Number of bags": len(self._bag_ptrs)})
 
         return metrics
 
@@ -50,7 +52,6 @@ class BagEnv(PartialEnv):
         # Grab the turn-idxs of the legal, label turns from this batch:
         # any turn with any non-trivial label
         label_idxs = []
-        print(batch_size)
         for i in range(batch_size):
             for s in self._ontology.slots:
                 if np.any(label[s][i]):
@@ -63,13 +64,9 @@ class BagEnv(PartialEnv):
             label_idxs = label_idxs[:max(
                 0, self._args.label_budget - self._used_labels)]
         num_labels = len(label_idxs)
-        print(label_idxs)
-        print("\n\n")
 
         # Grab ptrs and labels that are valid
         for s, v in label.items():
-            print(label[s])
-            print(label_idxs)
             label[s] = label[s][label_idxs]
         label_ptrs = self.current_ptrs[label_idxs]
 
@@ -109,6 +106,7 @@ class BagEnv(PartialEnv):
             self._model.set_optimizer()
 
         iteration = 0
+        best = None
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
@@ -169,12 +167,14 @@ class BagEnv(PartialEnv):
                 seed_loss, _ = self._model.forward(seed_batch,
                                                    seed_batch_labels,
                                                    training=True)
-                (loss + args.gamma * seed_loss).backward()
+                (loss + self._args.gamma * seed_loss).backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
+            for k, v in metrics.items():
+                self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))

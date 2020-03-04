@@ -10,6 +10,7 @@ import re
 import json
 from collections import defaultdict
 from pprint import pformat
+from ActiveDialogue.utils import split
 
 
 def pad(seqs, emb, device, pad=0):
@@ -262,10 +263,13 @@ class Model(nn.Module):
             weight = None
             for s in self.ontology.slots:
                 tbag = torch.zeros_like(ys[s])
+
                 tbag_idxs = np.array([
-                    (ii, j) for ii, i in enumerate(bag[s]) for j in i
+                    [ii, j] for ii, i in enumerate(bag[s]) for j in i
                 ])
-                tbag[tbag_idxs[:, 0], tbag_idxs[:, 1]] = 1
+                if len(tbag_idxs):
+                    tbag[tbag_idxs[:, 0], tbag_idxs[:, 1]] = 1
+
                 bag[s] = tbag.to(self.device)
 
                 if weight is None:
