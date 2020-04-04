@@ -1,7 +1,6 @@
 python3 -m ActiveDialogue.main.confirmation \
   --strategy $1 \
   --label_budget 50000 \
-  --pool_size 5000 \
   --al_batch 512 \
   --batch_size 256 \
   --seed_batch_size 64 \

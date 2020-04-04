@@ -1,7 +1,6 @@
 python3 -m ActiveDialogue.main.partial \
   --strategy $1 \
   --label_budget 20000 \
-  --pool_size 5000 \
   --al_batch 128 \
   --batch_size 64 \
   --seed_batch_size 64 \
