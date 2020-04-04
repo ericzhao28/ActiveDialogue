@@ -87,6 +87,9 @@ def main():
             # Fit every al_batch of items
             env.fit()
 
+    # Final fit
+    print("Final fit: ", env.seed_fit(100, "final_fit", True))
+
 
 if __name__ == "__main__":
     main()

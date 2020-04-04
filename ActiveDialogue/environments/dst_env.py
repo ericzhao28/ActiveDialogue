@@ -30,9 +30,16 @@ class DSTEnv():
         self._test_dataset = datasets["dev"]
         self._support_ptrs = np.array([], dtype=np.int32)
         self._ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
-            args.pool_size, args.seed_size, sample_mode=args.sample_mode)
-        assert len(self._ptrs) >= args.pool_size
+            args.num_passes, args.seed_size, sample_mode=args.sample_mode)
         self._num_turns = num_turns
+        self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
+        assert self.pool_size == len(self._ptrs)
+        print("Seed size: ", len(self._seed_ptrs))
+        print("Pool size: ", len(self._ptrs))
+
+        # Inject noise
+        if args.noise_fn > 0 or args.noise_fp > 0:
+            self._dataset.add_noise(args.noise_fn, args.noise_fp)
 
         # Load model
         self._model = model_cls(args, self._ontology, vocab)
@@ -51,29 +58,33 @@ class DSTEnv():
         """Leak ground-truth labels for current stream items"""
         return self._dataset.get_labels(self.current_ptrs)
 
-    def observe(self):
+    def observe(self, num_preds=1):
         """Grab observations and predictive distributions over batch"""
         obs = []
-        preds = {}
+        all_preds = [{} for _ in range(num_preds)]
         self._model.eval()
         for batch, _ in self._dataset.batch(
                 batch_size=self._args.inference_batch_size,
                 ptrs=self.current_ptrs,
                 shuffle=False):
-            batch_preds = self._model.forward(batch, training=False)[1]
-            if not preds:
-                for s in batch_preds.keys():
-                    preds[s] = []
-            for s in batch_preds.keys():
-                preds[s].append(batch_preds[s])
             obs.append(batch)
+
+            for i in range(num_preds):
+                preds = all_preds[i]
+                batch_preds = self._model.forward(batch, training=num_preds > 1)[1]
+                if not preds:
+                    for s in batch_preds.keys():
+                        preds[s] = []
+                for s in batch_preds.keys():
+                    preds[s].append(batch_preds[s])
+
         obs = np.concatenate(obs)
-        preds = {s: np.concatenate(v) for s, v in preds.items()}
+        all_preds = [{s: np.concatenate(v) for s, v in preds.items()} for preds in all_preds]
         return obs, preds
 
     def metrics(self, run_eval=False):
         metrics = {
-            "Stream progress": self._current_idx / self._args.pool_size,
+            "Stream progress": self._current_idx / self.pool_size,
             "Exhasuted label budget": self._used_labels / self._args.label_budget,
             "Exhasuted labels": self._used_labels,
         }
@@ -81,7 +92,7 @@ class DSTEnv():
         metrics.update({
             "Example label proportion":
                 len(self._support_ptrs) /
-                (self._args.pool_size + self._args.seed_size)
+                (self.pool_size + self._args.seed_size)
         })
         if run_eval:
             metrics.update(self.eval())
@@ -91,7 +102,7 @@ class DSTEnv():
     def step(self):
         """Step forward the current idx in the self._idxs path"""
         self._current_idx += self._args.al_batch
-        return self._current_idx >= self._args.pool_size
+        return self._current_idx >= self.pool_size
 
     @property
     def current_ptrs(self):
@@ -99,7 +110,7 @@ class DSTEnv():
         return self._ptrs[np.arange(
             self._current_idx,
             min(self._current_idx + self._args.al_batch,
-                self._args.pool_size))]
+                self.pool_size))]
 
     @property
     def can_label(self):
@@ -131,13 +142,19 @@ class DSTEnv():
 
         return len(label)
 
-    def seed_fit(self, epochs=None, prefix=""):
+    def seed_fit(self, epochs=None, prefix="", reset_model=False):
+        # Reset model if necessary
+        if reset_model:
+            self._model = model_cls(args, self._ontology, vocab)
+            self._model.load_emb(Eword)
+            self._model = self._model.to(self._model.device)
+
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
         iteration = 0
-        best = self.metrics(True)[self._args.stop]
+        best = self.metrics(True)
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
@@ -163,12 +180,13 @@ class DSTEnv():
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
-            if metrics[self._args.stop] > best:
+            if metrics[self._args.stop] > best[self._args.stop]:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
-                best = metrics[self._args.stop]
+                best = metrics
 
             self._model.train()
+        return best
 
     def fit(self, epochs=None, prefix=""):
         # Initialize optimizer and trackers

@@ -8,7 +8,7 @@ def get_args():
     parser.add_argument("--seed", type=int, default=28)
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--al_batch', type=int, default=512)
-    parser.add_argument('--pool_size', type=int, default=30000)
+    parser.add_argument('--num_passes', type=int, default=1)
     parser.add_argument('--label_budget', type=int, default=100000)
     parser.add_argument('--seed_size', type=int, default=200)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
@@ -29,6 +29,8 @@ def get_args():
     parser.add_argument('--seed_batch_size', type=int, default=64)
     parser.add_argument('--comp_batch_size', type=int, default=32)
     parser.add_argument('--inference_batch_size', type=int, default=256)
+    parser.add_argument('--noise_fn', type=float, default=0.01)
+    parser.add_argument('--noise_fp', type=float, default=0.001)
     parser.add_argument('--dexp',
                         help='root experiment folder',
                         default='exp')

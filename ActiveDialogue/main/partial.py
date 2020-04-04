@@ -63,7 +63,9 @@ def main():
 
             if env.can_label:
                 # Obtain label request from strategy
-                obs, preds = env.observe()
+                obs, preds = env.observe(100 if args.strategy == "bald" else 1)
+                if args.strategy != "bald":
+                    preds = preds[1]
                 if args.strategy == "aggressive":
                     label_request = aggressive(preds)
                 elif args.strategy == "random":
@@ -86,6 +88,8 @@ def main():
             ended = env.step()
             # Fit every al_batch of items
             env.fit()
+
+    print("Final fit: ", env.seed_fit(100, "final_fit", True))
 
 
 if __name__ == "__main__":

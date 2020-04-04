@@ -46,11 +46,23 @@ class Dataset:
                 self.turns_labels[slot][
                     i, ontology.values[slot].index(value)] = 1
 
-    def get_turn_ptrs(self, pool_size, seed_size, sample_mode):
+    def add_noise(self, fn, fp):
+        if fp != 0:
+            for s, v in self.turns_labels:
+                v_mask = np.zeros_like(v)
+                v_mask[np.random.uniform(size=v.shape) < fp] = 1
+                self.turns_labels[s][v_mask] = 1
+        if fn != 0:
+            for s, v in self.turns_labels:
+                v_mask = np.zeros_like(v)
+                v_mask[np.random.uniform(size=v.shape) < fn] = 1
+                self.turns_labels[s][v_mask] = 0
+
+    def get_turn_ptrs(self, num_passes, seed_size, sample_mode):
         """Get a list of ptrs into Dataset.turns by SS env.
         Args:
-            pool_size: Num of (non-seed) ptrs requested.
-            seed_size: Num of dialogues to reserve for seed turn ptrs.
+            num_passes: Num of online passes.
+            seed_size: Num of turns to reserve for seed turn ptrs.
             sample_mode: `singlepass` or `uniform`. Should ptrs be sampled
                          with or without replacement?
         Returns:
@@ -59,27 +71,19 @@ class Dataset:
             turn_ptr_cap: 1 + maximum turn ptr (number of turns from all
                           dialogues).
         """
-        if seed_size >= len(self.dialogues):
+        if seed_size >= len(self.turns):
             raise ValueError()
 
         # List of turn ptrs divided by dialogue index (first seed_size
         # are reserved for seeding).
-        seed_ptrs = np.where(self.turns_dlg < seed_size)[0]
-        orig_nonseed_ptrs = np.where(self.turns_dlg >= seed_size)[0]
-        assert len(seed_ptrs) >= seed_size
+        seed_ptrs = np.arange(seed_size)
+        orig_nonseed_ptrs = np.arange(seed_size, len(self.turns))
         assert len(orig_nonseed_ptrs) > 0
 
         if sample_mode == "singlepass":
-            # Grab permutations of nonseed_ptrs until pool_size is hit.
-            nonseed_ptrs = []
-            for i in range(0, pool_size + len(orig_nonseed_ptrs),
-                           len(orig_nonseed_ptrs)):
-                nonseed_ptrs.append(np.random.permutation(orig_nonseed_ptrs))
-            nonseed_ptrs = np.concatenate(nonseed_ptrs)[:pool_size]
-            assert len(nonseed_ptrs) == pool_size
+            nonseed_ptrs = np.tile(orig_nonseed_ptrs, num_passes)
         elif sample_mode == "uniform":
-            # Sample pool_size of nonseed_ptrs with replacement.
-            nonseed_ptrs = np.random.choice(orig_nonseed_ptrs, pool_size)
+            nonseed_ptrs = np.random.choice(orig_nonseed_ptrs, num_passes * (len(self.turns) - seed_size))
         else:
             raise ValueError("ClassificationEnv: Invalid sample mode")
 
