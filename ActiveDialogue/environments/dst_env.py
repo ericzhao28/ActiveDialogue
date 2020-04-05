@@ -68,7 +68,12 @@ class DSTEnv():
         """Grab observations and predictive distributions over batch"""
         obs = []
         all_preds = [{} for _ in range(num_preds)]
-        self._model.eval()
+
+        if num_preds == 1:
+            self._model.eval()
+        else:
+            self._model.train()
+
         for batch, _ in self._dataset.batch(
                 batch_size=self._args.inference_batch_size,
                 ptrs=self.current_ptrs,
@@ -77,8 +82,7 @@ class DSTEnv():
 
             for i in range(num_preds):
                 preds = all_preds[i]
-                batch_preds = self._model.forward(batch,
-                                                  training=num_preds > 1)[1]
+                batch_preds = self._model.forward(batch)[1]
                 if not preds:
                     for s in batch_preds.keys():
                         preds[s] = []
