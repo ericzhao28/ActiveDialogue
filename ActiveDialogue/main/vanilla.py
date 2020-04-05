@@ -30,10 +30,10 @@ def main():
     elif args.model == "gce":
         model_arch = GCE
 
-    env = DSTEnv(load_dataset, model_arch, args, logger)
+    env = DSTEnv(load_dataset, model_arch, args)
     if args.seed_size:
         with logger.train():
-            if not env.load_seed():
+            if not env.load('seed'):
                 logging.debug("No loaded seed. Training now.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
                 logging.debug("Seed completed.")
@@ -42,7 +42,7 @@ def main():
                 if args.force_seed:
                     logging.debug("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
-        env.load_seed()
+        env.load('seed')
         logging.debug("Current seed metrics: {}".format(env.metrics(True)))
 
     use_strategy = False
@@ -94,15 +94,20 @@ def main():
                     strategy.update(
                         np.sum(label_request.flatten()),
                         np.sum(np.ones_like(label_request.flatten())))
+            else:
+                break
 
             # Environment stepping
             ended = env.step()
             # Fit every al_batch of items
-            env.fit(prefix=env.id())
+            env.load(prefix='seed')
+            best = env.fit(prefix=env.id())
+            for k, v in best.items():
+                logger.log_metric(k, v)
+            env.load(prefix=env.id())
 
     # Final fit
-    final_metrics = env.fit(epochs=20,
-                            prefix="final_fit_" + env.id(),
+    final_metrics = env.fit(prefix="final_fit_" + env.id(),
                             reset_model=True)
     for k, v in final_metrics:
         logger.log_metric("Final " + k, v)

@@ -10,10 +10,10 @@ import pdb
 
 class PartialEnv(DSTEnv):
 
-    def __init__(self, load_dataset, model_cls, args, logger):
+    def __init__(self, load_dataset, model_cls, args):
         """Initialize environment and cache datasets."""
 
-        super().__init__(load_dataset, model_cls, args, logger)
+        super().__init__(load_dataset, model_cls, args)
 
         # Initialize mask of viewable data points
         self._support_masks = {}
@@ -133,8 +133,6 @@ class PartialEnv(DSTEnv):
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             logging.debug("Epoch metrics: {}".format(metrics))
-            for k, v in metrics.items():
-                self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
                 logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))

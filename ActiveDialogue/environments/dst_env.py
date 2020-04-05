@@ -9,7 +9,7 @@ import pdb
 
 class DSTEnv():
 
-    def __init__(self, load_dataset, model_cls, args, logger):
+    def __init__(self, load_dataset, model_cls, args):
         """Initialize environment and cache datasets."""
 
         np.random.seed(args.seed)
@@ -17,7 +17,6 @@ class DSTEnv():
         random.seed(args.seed)
 
         self._args = args
-        self._logger = logger
 
         # Position in stream
         self._current_idx = 0
@@ -52,9 +51,9 @@ class DSTEnv():
             self._args.model, self._args.batch_size, self._args.gamma,
             self._args.label_budget, self._args.epochs)
 
-    def load_seed(self):
+    def load(self, prefix):
         """Load seeded model for the current seed"""
-        success = self._model.load_id('seed' + str(self._args.seed))
+        success = self._model.load_id(prefix + str(self._args.seed))
         if not success:
             return False
         self._model = self._model.to(self._model.device)
@@ -99,9 +98,9 @@ class DSTEnv():
         metrics = {
             "Stream progress":
                 self._current_idx / self.pool_size,
-            "Exhasuted label budget":
+            "Exhausted label budget":
                 self._used_labels / self._args.label_budget,
-            "Exhasuted labels":
+            "Exhausted labels":
                 self._used_labels,
         }
 
@@ -245,9 +244,6 @@ class DSTEnv():
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             logging.debug("Epoch metrics: {}".format(metrics))
-            if self._logger:
-                for k, v in metrics.items():
-                    self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best[
                     self._args.stop]:
                 logging.debug("Saving best!")
