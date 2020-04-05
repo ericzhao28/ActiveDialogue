@@ -33,8 +33,8 @@ class DSTEnv():
         self._num_turns = num_turns
         self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
         assert self.pool_size == len(self._ptrs)
-        logging.debug("Seed size: ", len(self._seed_ptrs))
-        logging.debug("Pool size: ", len(self._ptrs))
+        logging.debug("Seed size: {}".format(len(self._seed_ptrs)))
+        logging.debug("Pool size: {}".format(len(self._ptrs)))
 
         # Inject noise
         if args.noise_fn > 0 or args.noise_fp > 0:
@@ -184,7 +184,7 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: {}".format(metrics))
             if metrics[self._args.stop] > best[self._args.stop]:
                 logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
@@ -240,7 +240,7 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: {}".format(metrics))
             if self._logger:
                 for k, v in metrics.items():
                     self._logger.log_metric(k, v)

@@ -170,7 +170,7 @@ class BagEnv(PartialEnv):
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: {}".format(metrics))
             for k, v in metrics.items():
                 self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:

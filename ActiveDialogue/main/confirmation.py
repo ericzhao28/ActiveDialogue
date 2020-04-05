@@ -34,7 +34,7 @@ def main():
                     logging.debug("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
         env.load_seed()
-        logging.debug("Current seed metrics:", env.metrics(True))
+        logging.debug("Current seed metrics: {}".format(env.metrics(True)))
 
     use_strategy = False
     if args.strategy == "lc":
