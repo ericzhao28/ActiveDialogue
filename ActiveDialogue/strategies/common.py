@@ -6,6 +6,7 @@ import math
 
 
 class ThresholdStrategy():
+
     def __init__(self, measure_uncertainty, args, need_unsplit=True):
         self._measure_uncertainty = measure_uncertainty
         self._threshold = args.init_threshold
@@ -29,6 +30,7 @@ class ThresholdStrategy():
     def update(self, n, m):
         pass
 
+
 class FixedThresholdStrategy(ThresholdStrategy):
 
     @property
@@ -39,13 +41,16 @@ class FixedThresholdStrategy(ThresholdStrategy):
 class VariableThresholdStrategy(FixedThresholdStrategy):
 
     def update(self, n, m):
-        self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, n)
-        self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, float(m-n) / self._rejection_ratio)
+        self._threshold = self._threshold * math.pow(
+            1 + self._threshold_scaler, n)
+        self._threshold = self._threshold * math.pow(
+            1 + self._threshold_scaler,
+            float(m - n) / self._rejection_ratio)
 
 
 class StochasticVariableThresholdStrategy(VariableThresholdStrategy):
 
     @property
     def threshold(self):
-        return self._threshold * np.random.normal(
-            loc=1, scale=self._noise_std)
+        return self._threshold * np.random.normal(loc=1,
+                                                  scale=self._noise_std)

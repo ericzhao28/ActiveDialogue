@@ -34,8 +34,7 @@ class BagEnv(PartialEnv):
         metrics.update({"Bit label proportion": labeled_size / total_size})
         metrics.update(
             {"Bag proportion": len(self._bag_ptrs) / self._num_turns})
-        metrics.update(
-            {"Number of bags": len(self._bag_ptrs)})
+        metrics.update({"Number of bags": len(self._bag_ptrs)})
 
         return metrics
 

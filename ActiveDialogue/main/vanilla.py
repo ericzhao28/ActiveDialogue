@@ -4,7 +4,7 @@ from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
-from ActiveDialogue.config import comet_ml_key
+from ActiveDialogue.config import comet_ml_key, lib_dir
 from ActiveDialogue.strategies.vanilla_baselines import aggressive, random, passive
 from ActiveDialogue.strategies.uncertainties import lc, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
@@ -14,6 +14,14 @@ import logging
 
 def main():
     args = get_args()
+    logging.basicConfig(
+        filename=lib_dir + "/exp/" +
+        "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}"
+        .format(args.seed, args.strategy, args.noise_fn, args.noise_fp,
+                args.num_passes, args.seed_size, args.model, args.batch_size,
+                args.gamma, args.label_budget, args.epochs),
+        level=logging.DEBUG)
+
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
     logger.log_parameters(vars(args))
 
@@ -51,7 +59,8 @@ def main():
         elif args.threshold_strategy == "variable":
             strategy = VariableThresholdStrategy(strategy, args, False)
         elif args.threshold_strategy == "randomvariable":
-            strategy = StochasticVariableThresholdStrategy(strategy, args, False)
+            strategy = StochasticVariableThresholdStrategy(
+                strategy, args, False)
 
     ended = False
     i = 0
@@ -64,7 +73,8 @@ def main():
 
             if env.can_label:
                 # Obtain label request from strategy
-                obs, preds = env.observe(100 if args.strategy == "bald" else 1)
+                obs, preds = env.observe(100 if args.strategy ==
+                                         "bald" else 1)
                 if args.strategy != "bald":
                     preds = preds[0]
                 if args.strategy == "aggressive":
@@ -81,9 +91,9 @@ def main():
                 # Label solicitation
                 labeled = env.label(label_request)
                 if use_strategy:
-                    strategy.update(np.sum(label_request.flatten()),
-                                    np.sum(np.ones_like(label_request.flatten()))
-                                    )
+                    strategy.update(
+                        np.sum(label_request.flatten()),
+                        np.sum(np.ones_like(label_request.flatten())))
 
             # Environment stepping
             ended = env.step()
@@ -91,7 +101,11 @@ def main():
             env.fit(prefix=env.id())
 
     # Final fit
-    logging.debug("Final fit: ", env.fit(epochs=20, prefix="final_fit_" + env.id(), reset_model=True))
+    final_metrics = env.fit(epochs=20,
+                            prefix="final_fit_" + env.id(),
+                            reset_model=True)
+    for k, v in final_metrics:
+        logger.log_metric("Final " + k, v)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,10 @@ class DSTEnv():
 
     def id(self):
         return "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
-                self._args.seed, self._args.strategy, self._args.noise_fn, self._args.noise_fp, self._args.num_passes, self._args.seed_size, self._args.model, self._args.batch_size, self._args.gamma, self._args.label_budget, self._args.epochs)
+            self._args.seed, self._args.strategy, self._args.noise_fn,
+            self._args.noise_fp, self._args.num_passes, self._args.seed_size,
+            self._args.model, self._args.batch_size, self._args.gamma,
+            self._args.label_budget, self._args.epochs)
 
     def load_seed(self):
         """Load seeded model for the current seed"""
@@ -74,7 +77,8 @@ class DSTEnv():
 
             for i in range(num_preds):
                 preds = all_preds[i]
-                batch_preds = self._model.forward(batch, training=num_preds > 1)[1]
+                batch_preds = self._model.forward(batch,
+                                                  training=num_preds > 1)[1]
                 if not preds:
                     for s in batch_preds.keys():
                         preds[s] = []
@@ -82,14 +86,19 @@ class DSTEnv():
                     preds[s].append(batch_preds[s])
 
         obs = np.concatenate(obs)
-        all_preds = [{s: np.concatenate(v) for s, v in preds.items()} for preds in all_preds]
+        all_preds = [{s: np.concatenate(v)
+                      for s, v in preds.items()}
+                     for preds in all_preds]
         return obs, all_preds
 
     def metrics(self, run_eval=False):
         metrics = {
-            "Stream progress": self._current_idx / self.pool_size,
-            "Exhasuted label budget": self._used_labels / self._args.label_budget,
-            "Exhasuted labels": self._used_labels,
+            "Stream progress":
+                self._current_idx / self.pool_size,
+            "Exhasuted label budget":
+                self._used_labels / self._args.label_budget,
+            "Exhasuted labels":
+                self._used_labels,
         }
 
         metrics.update({
@@ -112,8 +121,7 @@ class DSTEnv():
         """Expand current_idx into an array of currently occupied idxs"""
         return self._ptrs[np.arange(
             self._current_idx,
-            min(self._current_idx + self._args.al_batch,
-                self.pool_size))]
+            min(self._current_idx + self._args.al_batch, self.pool_size))]
 
     @property
     def can_label(self):
@@ -215,7 +223,8 @@ class DSTEnv():
                 batch_size=self._args.batch_size,
                 ptrs=self._support_ptrs,
                 shuffle=True)
-            logging.debug("Fitting on {} datapoints.".format(len(self._support_ptrs)))
+            logging.debug("Fitting on {} datapoints.".format(
+                len(self._support_ptrs)))
 
             for batch, batch_labels in support_iterator:
                 seed_batch, seed_batch_labels = next(seed_iterator)
@@ -235,12 +244,14 @@ class DSTEnv():
             if self._logger:
                 for k, v in metrics.items():
                     self._logger.log_metric(k, v)
-            if best is None or metrics[self._args.stop] > best:
+            if best is None or metrics[self._args.stop] > best[
+                    self._args.stop]:
                 logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
-                best = metrics[self._args.stop]
+                best = metrics
 
             self._model.train()
+        return best
 
     def eval(self):
         logging.debug('Running dev evaluation')

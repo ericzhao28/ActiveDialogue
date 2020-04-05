@@ -83,7 +83,8 @@ class Dataset:
         if sample_mode == "singlepass":
             nonseed_ptrs = np.tile(orig_nonseed_ptrs, num_passes)
         elif sample_mode == "uniform":
-            nonseed_ptrs = np.random.choice(orig_nonseed_ptrs, num_passes * (len(self.turns) - seed_size))
+            nonseed_ptrs = np.random.choice(
+                orig_nonseed_ptrs, num_passes * (len(self.turns) - seed_size))
         else:
             raise ValueError("ClassificationEnv: Invalid sample mode")
 

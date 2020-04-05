@@ -110,7 +110,8 @@ class PartialEnv(DSTEnv):
                 ptrs=self._support_ptrs,
                 shuffle=True,
                 return_ptrs=True)
-            logging.debug("Fitting on {} datapoints.".format(len(self._support_ptrs)))
+            logging.debug("Fitting on {} datapoints.".format(
+                len(self._support_ptrs)))
 
             for batch, batch_labels, batch_ptrs in support_iterator:
                 seed_batch, seed_batch_labels = next(seed_iterator)

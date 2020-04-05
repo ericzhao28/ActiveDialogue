@@ -66,7 +66,8 @@ def main():
                     # Obtain label request from strategy
                     obs, preds = env.observe()
                     if args.strategy == "epsiloncheat":
-                        label_request = epsilon_cheat(preds, env.leak_labels())
+                        label_request = epsilon_cheat(preds,
+                                                      env.leak_labels())
                     elif args.strategy == "randomsinglets":
                         label_request = random_singlets(preds)
                     elif args.strategy == "passive":
@@ -79,9 +80,9 @@ def main():
                     # Label solicitation
                     labeled = env.label(label_request)
                     if use_strategy:
-                        strategy.update(np.sum(label_request.flatten()),
-                                        np.sum(np.ones_like(label_request.flatten()))
-                                        )
+                        strategy.update(
+                            np.sum(label_request.flatten()),
+                            np.sum(np.ones_like(label_request.flatten())))
 
             # Environment stepping
             ended = env.step()

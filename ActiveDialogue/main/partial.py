@@ -64,7 +64,8 @@ def main():
 
             if env.can_label:
                 # Obtain label request from strategy
-                obs, preds = env.observe(100 if args.strategy == "bald" else 1)
+                obs, preds = env.observe(100 if args.strategy ==
+                                         "bald" else 1)
                 if args.strategy != "bald":
                     preds = preds[0]
                 if args.strategy == "aggressive":
@@ -81,9 +82,15 @@ def main():
                 # Label solicitation
                 labeled = env.label(label_request)
                 if use_strategy:
-                    strategy.update(sum([np.sum(s.flatten()) for s in label_request.values()]),
-                                    sum([np.sum(np.ones_like(s).flatten()) for s in label_request.values()])
-                                    )
+                    strategy.update(
+                        sum([
+                            np.sum(s.flatten())
+                            for s in label_request.values()
+                        ]),
+                        sum([
+                            np.sum(np.ones_like(s).flatten())
+                            for s in label_request.values()
+                        ]))
 
             # Environment stepping
             ended = env.step()
