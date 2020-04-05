@@ -9,6 +9,7 @@ from ActiveDialogue.strategies.vanilla_baselines import aggressive, random, pass
 from ActiveDialogue.strategies.uncertainties import lc, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 import numpy as np
+import logging
 
 
 def main():
@@ -25,16 +26,16 @@ def main():
     if args.seed_size:
         with logger.train():
             if not env.load_seed():
-                print("No loaded seed. Training now.")
+                logging.debug("No loaded seed. Training now.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
-                print("Seed completed.")
+                logging.debug("Seed completed.")
             else:
-                print("Loaded seed.")
+                logging.debug("Loaded seed.")
                 if args.force_seed:
-                    print("Training seed regardless.")
+                    logging.debug("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
         env.load_seed()
-        print("Current seed metrics:", env.metrics(True))
+        logging.debug("Current seed metrics:", env.metrics(True))
 
     use_strategy = False
     if args.strategy == "lc":
@@ -90,7 +91,7 @@ def main():
             env.fit(prefix=env.id())
 
     # Final fit
-    print("Final fit: ", env.fit(epochs=20, prefix="final_fit_" + env.id(), reset_model=True))
+    logging.debug("Final fit: ", env.fit(epochs=20, prefix="final_fit_" + env.id(), reset_model=True))
 
 
 if __name__ == "__main__":

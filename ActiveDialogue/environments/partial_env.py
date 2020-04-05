@@ -6,7 +6,6 @@ import numpy as np
 import random
 import logging
 import pdb
-from pprint import pprint
 
 
 class PartialEnv(DSTEnv):
@@ -27,7 +26,7 @@ class PartialEnv(DSTEnv):
         if args.seed_size:
             for s in self._ontology.slots:
                 self._support_masks[s][self._support_ptrs, :] = 1
-            print("Seeding")
+            logging.debug("Seeding")
 
     def metrics(self, run_eval=False):
         metrics = super().metrics(run_eval)
@@ -98,7 +97,7 @@ class PartialEnv(DSTEnv):
         self._model.train()
 
         for epoch in range(epochs):
-            print('Starting fit epoch {}.'.format(epoch))
+            logging.debug('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -111,7 +110,7 @@ class PartialEnv(DSTEnv):
                 ptrs=self._support_ptrs,
                 shuffle=True,
                 return_ptrs=True)
-            print("Fitting on {} datapoints.".format(len(self._support_ptrs)))
+            logging.debug("Fitting on {} datapoints.".format(len(self._support_ptrs)))
 
             for batch, batch_labels, batch_ptrs in support_iterator:
                 seed_batch, seed_batch_labels = next(seed_iterator)
@@ -132,11 +131,11 @@ class PartialEnv(DSTEnv):
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            print("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: ", metrics)
             for k, v in metrics.items():
                 self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
-                print("Saving best!")
+                logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics[self._args.stop]
 

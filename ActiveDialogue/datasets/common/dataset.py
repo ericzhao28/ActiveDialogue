@@ -35,8 +35,8 @@ class Dataset:
                 self.turns_dlg.append(i)
         self.turns = np.array(self.turns, dtype=np.object_)
         self.turns_dlg = np.array(self.turns_dlg, dtype=np.int32)
-        print("Loaded {} turns.".format(len(self.turns)))
-        print("Loaded {} dialogues.".format(len(self.dialogues)))
+        logging.debug("Loaded {} turns.".format(len(self.turns)))
+        logging.debug("Loaded {} dialogues.".format(len(self.dialogues)))
         self.turns_labels = {
             s: np.zeros((len(self.turns), len(ontology.values[s])),
                         dtype=np.float32) for s in ontology.slots

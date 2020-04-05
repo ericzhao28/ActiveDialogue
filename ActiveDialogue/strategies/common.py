@@ -27,8 +27,6 @@ class ThresholdStrategy():
         pass
 
     def update(self, n, m):
-        print(self._threshold)
-        print(n, m)
         pass
 
 class FixedThresholdStrategy(ThresholdStrategy):
@@ -41,11 +39,8 @@ class FixedThresholdStrategy(ThresholdStrategy):
 class VariableThresholdStrategy(FixedThresholdStrategy):
 
     def update(self, n, m):
-        print(self._threshold)
-        print(n, m)
         self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, n)
         self._threshold = self._threshold * math.pow(1 + self._threshold_scaler, float(m-n) / self._rejection_ratio)
-        print(self._threshold)
 
 
 class StochasticVariableThresholdStrategy(VariableThresholdStrategy):

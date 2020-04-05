@@ -5,7 +5,6 @@ import numpy as np
 import random
 import logging
 import pdb
-from pprint import pprint
 
 
 class DSTEnv():
@@ -34,8 +33,8 @@ class DSTEnv():
         self._num_turns = num_turns
         self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
         assert self.pool_size == len(self._ptrs)
-        print("Seed size: ", len(self._seed_ptrs))
-        print("Pool size: ", len(self._ptrs))
+        logging.debug("Seed size: ", len(self._seed_ptrs))
+        logging.debug("Pool size: ", len(self._ptrs))
 
         # Inject noise
         if args.noise_fn > 0 or args.noise_fp > 0:
@@ -158,7 +157,7 @@ class DSTEnv():
         self._model.train()
 
         for epoch in range(epochs):
-            print('Starting fit epoch {}.'.format(epoch))
+            logging.debug('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -177,9 +176,9 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            print("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: ", metrics)
             if metrics[self._args.stop] > best[self._args.stop]:
-                print("Saving best!")
+                logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics
 
@@ -204,7 +203,7 @@ class DSTEnv():
         self._model.train()
 
         for epoch in range(epochs):
-            print('Starting fit epoch {}.'.format(epoch))
+            logging.debug('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -216,7 +215,7 @@ class DSTEnv():
                 batch_size=self._args.batch_size,
                 ptrs=self._support_ptrs,
                 shuffle=True)
-            print("Fitting on {} datapoints.".format(len(self._support_ptrs)))
+            logging.debug("Fitting on {} datapoints.".format(len(self._support_ptrs)))
 
             for batch, batch_labels in support_iterator:
                 seed_batch, seed_batch_labels = next(seed_iterator)
@@ -232,18 +231,18 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            print("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: ", metrics)
             if self._logger:
                 for k, v in metrics.items():
                     self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
-                print("Saving best!")
+                logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics[self._args.stop]
 
             self._model.train()
 
     def eval(self):
-        logging.info('Running dev evaluation')
+        logging.debug('Running dev evaluation')
         self._model.eval()
         return self._model.run_eval(self._test_dataset, self._args)

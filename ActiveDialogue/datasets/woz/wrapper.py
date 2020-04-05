@@ -9,6 +9,8 @@ import os
 
 
 def load_dataset(splits=('train', 'dev', 'test')):
+    logging.debug("Loading Woz dataset.")
+
     with open(os.path.join(mnt_dir + "/woz/ann", 'ontology.json')) as f:
         ontology = Ontology.from_dict(json.load(f))
 

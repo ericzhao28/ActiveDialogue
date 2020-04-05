@@ -1,4 +1,5 @@
 from comet_ml import Experiment
+import logging
 from ActiveDialogue.environments.partial_env import PartialEnv
 from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
@@ -25,16 +26,16 @@ def main():
     if args.seed_size:
         with logger.train():
             if not env.load_seed():
-                print("No loaded seed. Training now.")
+                logging.debug("No loaded seed. Training now.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
-                print("Seed completed.")
+                logging.debug("Seed completed.")
             else:
-                print("Loaded seed.")
+                logging.debug("Loaded seed.")
                 if args.force_seed:
-                    print("Training seed regardless.")
+                    logging.debug("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
         env.load_seed()
-        print("Current seed metrics:", env.metrics(True))
+        logging.debug("Current seed metrics:", env.metrics(True))
 
     use_strategy = False
     if args.strategy == "lc":
@@ -89,7 +90,7 @@ def main():
             # Fit every al_batch of items
             env.fit()
 
-    print("Final fit: ", env.seed_fit(100, "final_fit", True))
+    logging.debug("Final fit: ", env.seed_fit(100, "final_fit", True))
 
 
 if __name__ == "__main__":

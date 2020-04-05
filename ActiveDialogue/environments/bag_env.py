@@ -6,7 +6,6 @@ import numpy as np
 import random
 import logging
 import pdb
-from pprint import pprint
 
 
 class BagEnv(PartialEnv):
@@ -112,7 +111,7 @@ class BagEnv(PartialEnv):
         self._model.train()
 
         for epoch in range(epochs):
-            print('Starting fit epoch {}.'.format(epoch))
+            logging.debug('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -123,7 +122,7 @@ class BagEnv(PartialEnv):
 
             shuffled_bag_idxs = np.random.permutation(
                 np.arange(len(self._bag_ptrs)))[:self._args.fit_items]
-            print("Fitting on {} bags".format(len(shuffled_bag_idxs)))
+            logging.debug("Fitting on {} bags".format(len(shuffled_bag_idxs)))
             support_iterator = self._dataset.batch(
                 batch_size=self._args.batch_size,
                 ptrs=self._bag_ptrs[shuffled_bag_idxs])
@@ -172,11 +171,11 @@ class BagEnv(PartialEnv):
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            print("Epoch metrics: ", metrics)
+            logging.debug("Epoch metrics: ", metrics)
             for k, v in metrics.items():
                 self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
-                print("Saving best!")
+                logging.debug("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics[self._args.stop]
 
