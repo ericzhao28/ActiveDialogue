@@ -65,7 +65,7 @@ def main():
                 # Obtain label request from strategy
                 obs, preds = env.observe(100 if args.strategy == "bald" else 1)
                 if args.strategy != "bald":
-                    preds = preds[1]
+                    preds = preds[0]
                 if args.strategy == "aggressive":
                     label_request = aggressive(preds)
                 elif args.strategy == "random":

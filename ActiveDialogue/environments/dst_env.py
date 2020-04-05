@@ -46,6 +46,10 @@ class DSTEnv():
         self._model.load_emb(Eword)
         self._model = self._model.to(self._model.device)
 
+    def id(self):
+        return "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
+                self._args.seed, self._args.strategy, self._args.noise_fn, self._args.noise_fp, self._args.num_passes, self._args.seed_size, self._args.model, self._args.batch_size, self._args.gamma, self._args.label_budget, self._args.epochs)
+
     def load_seed(self):
         """Load seeded model for the current seed"""
         success = self._model.load_id('seed' + str(self._args.seed))
@@ -80,7 +84,7 @@ class DSTEnv():
 
         obs = np.concatenate(obs)
         all_preds = [{s: np.concatenate(v) for s, v in preds.items()} for preds in all_preds]
-        return obs, preds
+        return obs, all_preds
 
     def metrics(self, run_eval=False):
         metrics = {
@@ -142,13 +146,7 @@ class DSTEnv():
 
         return len(label)
 
-    def seed_fit(self, epochs=None, prefix="", reset_model=False):
-        # Reset model if necessary
-        if reset_model:
-            self._model = model_cls(args, self._ontology, vocab)
-            self._model.load_emb(Eword)
-            self._model = self._model.to(self._model.device)
-
+    def seed_fit(self, epochs=None, prefix=""):
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
@@ -188,7 +186,13 @@ class DSTEnv():
             self._model.train()
         return best
 
-    def fit(self, epochs=None, prefix=""):
+    def fit(self, epochs=None, prefix="", reset_model=False):
+        # Reset model if necessary
+        if reset_model:
+            self._model = model_cls(args, self._ontology, vocab)
+            self._model.load_emb(Eword)
+            self._model = self._model.to(self._model.device)
+
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
