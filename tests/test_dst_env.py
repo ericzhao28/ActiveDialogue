@@ -2,7 +2,7 @@ from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.toy.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.main.utils import get_args
-from ActiveDialogue.strategies.naive_baselines import epsilon_cheat
+from ActiveDialogue.strategies.vanilla_baselines import aggressive
 import logging
 
 
@@ -22,7 +22,7 @@ def main():
     args.seed_epochs = 3
     args.epochs = 1
 
-    env = DSTEnv(load_dataset, GLAD, args)
+    env = DSTEnv(load_dataset, GLAD, args, logger=None)
     logging.info("Seed indices")
     logging.info(env._support_ptrs)
     logging.info("Stream indices")
@@ -45,14 +45,14 @@ def main():
         logging.info(true_labels)
 
         logging.info("\n")
-        requested_label = epsilon_cheat(obs_dist, true_labels)
+        requested_label = aggressive(obs_dist)
         logging.info("Requested label: ", requested_label)
         logging.info("Environment label request now.")
-        label_success = env.label(requested_label)
-        logging.info("Label success: ", label_success)
-        logging.info("Support ptrs: ", env._support_ptrs)
-        logging.info("Support mask: ", env._support_masks)
-        logging.info("Support labels: ", env._support_labels)
+
+        if env.can_label:
+            label_success = env.label(requested_label)
+            logging.info("Label success: ", label_success)
+            logging.info("Support ptrs: ", env._support_ptrs)
 
         logging.info("\n")
         logging.info("Environment stepping now.")

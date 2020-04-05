@@ -48,13 +48,13 @@ class Dataset:
 
     def add_noise(self, fn, fp):
         if fp != 0:
-            for s, v in self.turns_labels:
-                v_mask = np.zeros_like(v)
+            for s, v in self.turns_labels.items():
+                v_mask = np.zeros_like(v, dtype=np.int32)
                 v_mask[np.random.uniform(size=v.shape) < fp] = 1
                 self.turns_labels[s][v_mask] = 1
         if fn != 0:
-            for s, v in self.turns_labels:
-                v_mask = np.zeros_like(v)
+            for s, v in self.turns_labels.items():
+                v_mask = np.zeros_like(v, dtype=np.int32)
                 v_mask[np.random.uniform(size=v.shape) < fn] = 1
                 self.turns_labels[s][v_mask] = 0
 

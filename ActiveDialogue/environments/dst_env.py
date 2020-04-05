@@ -229,8 +229,9 @@ class DSTEnv():
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
             print("Epoch metrics: ", metrics)
-            for k, v in metrics.items():
-                self._logger.log_metric(k, v)
+            if self._logger:
+                for k, v in metrics.items():
+                    self._logger.log_metric(k, v)
             if best is None or metrics[self._args.stop] > best:
                 print("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
