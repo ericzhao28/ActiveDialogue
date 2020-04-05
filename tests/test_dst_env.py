@@ -1,4 +1,4 @@
-rom ActiveDialogue.environments.dst_env import DSTEnv
+from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.toy.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.main.utils import get_args
