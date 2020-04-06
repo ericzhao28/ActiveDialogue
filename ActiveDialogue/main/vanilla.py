@@ -70,19 +70,24 @@ def main():
 
             # Observe environment state
             logger.log_current_epoch(i)
+            skip_fit = True
 
             if env.can_label:
                 # Obtain label request from strategy
-                obs, preds = env.observe(100 if args.strategy ==
+                obs, preds = env.observe(40 if args.strategy ==
                                          "bald" else 1)
                 if args.strategy != "bald":
                     preds = preds[0]
+                skip_fit = False
                 if args.strategy == "aggressive":
                     label_request = aggressive(preds)
+                    skip_fit = True
                 elif args.strategy == "random":
                     label_request = random(preds)
+                    skip_fit = True
                 elif args.strategy == "passive":
                     label_request = passive(preds)
+                    skip_fit = True
                 elif use_strategy:
                     label_request = strategy.observe(preds)
                 else:
@@ -100,6 +105,8 @@ def main():
             # Environment stepping
             ended = env.step()
             # Fit every al_batch of items
+            if skip_fit:
+                continue
             best = env.fit(prefix=env.id(), reset_model=True)
             for k, v in best.items():
                 logger.log_metric(k, v)
