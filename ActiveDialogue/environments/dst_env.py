@@ -48,13 +48,6 @@ class DSTEnv():
         load_model()
         self._reset_model = load_model
 
-    def id(self):
-        return "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
-            self._args.seed, self._args.strategy, self._args.noise_fn,
-            self._args.noise_fp, self._args.num_passes, self._args.seed_size,
-            self._args.model, self._args.batch_size, self._args.gamma,
-            self._args.label_budget, self._args.epochs)
-
     def load(self, prefix):
         """Load seeded model for the current seed"""
         success = self._model.load_id(prefix + str(self._args.seed))

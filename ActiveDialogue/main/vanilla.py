@@ -14,12 +14,12 @@ import logging
 
 def main():
     args = get_args()
-    logging.basicConfig(
-        filename=lib_dir + "/exp/" +
-        "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}"
+    model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}"
         .format(args.seed, args.strategy, args.noise_fn, args.noise_fp,
                 args.num_passes, args.seed_size, args.model, args.batch_size,
-                args.gamma, args.label_budget, args.epochs),
+                args.gamma, args.label_budget, args.epochs)
+    logging.basicConfig(
+        filename=lib_dir + "/exp/" + model_id,
         level=logging.DEBUG)
 
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
@@ -107,13 +107,13 @@ def main():
             # Fit every al_batch of items
             if skip_fit:
                 continue
-            best = env.fit(prefix=env.id(), reset_model=True)
+            best = env.fit(prefix=model_id, reset_model=True)
             for k, v in best.items():
                 logger.log_metric(k, v)
-            env.load(prefix=env.id())
+            env.load(prefix=model_id)
 
     # Final fit
-    final_metrics = env.fit(prefix="final_fit_" + env.id(),
+    final_metrics = env.fit(prefix="final_fit_" + model_id,
                             reset_model=True)
     for k, v in final_metrics.items():
         logger.log_metric("Final " + k, v)
