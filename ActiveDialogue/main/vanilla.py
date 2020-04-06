@@ -100,8 +100,7 @@ def main():
             # Environment stepping
             ended = env.step()
             # Fit every al_batch of items
-            env.load(prefix='seed')
-            best = env.fit(prefix=env.id())
+            best = env.fit(prefix=env.id(), reset_model=True)
             for k, v in best.items():
                 logger.log_metric(k, v)
             env.load(prefix=env.id())
@@ -109,7 +108,7 @@ def main():
     # Final fit
     final_metrics = env.fit(prefix="final_fit_" + env.id(),
                             reset_model=True)
-    for k, v in final_metrics:
+    for k, v in final_metrics.items():
         logger.log_metric("Final " + k, v)
 
 

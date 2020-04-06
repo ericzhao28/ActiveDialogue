@@ -40,9 +40,13 @@ class DSTEnv():
             self._dataset.add_noise(args.noise_fn, args.noise_fp)
 
         # Load model
-        self._model = model_cls(args, self._ontology, vocab)
-        self._model.load_emb(Eword)
-        self._model = self._model.to(self._model.device)
+        def load_model():
+            self._model = model_cls(args, self._ontology, vocab)
+            self._model.load_emb(Eword)
+            self._model = self._model.to(self._model.device)
+
+        load_model()
+        self._reset_model = load_model
 
     def id(self):
         return "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
@@ -137,7 +141,7 @@ class DSTEnv():
             raise ValueError()
 
         # Get label locations
-        label = np.where(label == 1)
+        label = np.where(label == 1)[0]  # FIXED: where returns a tuple?
 
         # Filter out redundant label requests
         label = [
@@ -199,9 +203,8 @@ class DSTEnv():
     def fit(self, epochs=None, prefix="", reset_model=False):
         # Reset model if necessary
         if reset_model:
-            self._model = model_cls(args, self._ontology, vocab)
-            self._model.load_emb(Eword)
-            self._model = self._model.to(self._model.device)
+            self._reset_model()
+            self.load('seed')
 
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
