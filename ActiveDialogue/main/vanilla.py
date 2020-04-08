@@ -14,8 +14,7 @@ import logging
 
 def main():
     args = get_args()
-    model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}"
-        .format(args.seed, args.strategy, args.noise_fn, args.noise_fp,
+    model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(args.seed, args.strategy, args.noise_fn, args.noise_fp,
                 args.num_passes, args.seed_size, args.model, args.batch_size,
                 args.gamma, args.label_budget, args.epochs)
     logging.basicConfig(

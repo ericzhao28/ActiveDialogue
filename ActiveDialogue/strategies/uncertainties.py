@@ -6,7 +6,7 @@ def lc(pred):
 
 
 def bald(preds):
-    return np.max(partial_bald(pred), axis=1)
+    return np.max(partial_bald(preds), axis=1)
 
 
 def partial_lc(pred):
@@ -14,8 +14,8 @@ def partial_lc(pred):
 
 
 def partial_bald(preds):
-    disag = np.sum(preds > 0.5, axis=0) / preds.shape[0]
-    return np.min(disag, 1 - disag)
+    disag = np.sum(np.array(preds) > 0.5, axis=0) / len(preds)
+    return np.min([disag, 1 - disag], axis=1)
 
 
 def lc_singlet(pred):
