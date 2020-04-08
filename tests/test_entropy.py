@@ -2,7 +2,8 @@ from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.toy.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.main.utils import get_args
-from ActiveDialogue.strategies.vanilla_baselines import aggressive
+from ActiveDialogue.strategies.uncertainties import entropy, bald
+from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 import logging
 
 
@@ -23,6 +24,7 @@ def main():
     args.epochs = 1
 
     env = DSTEnv(load_dataset, GLAD, args)
+    strategy = FixedThresholdStrategy(entropy, args, False)
     logging.info("Seed indices")
     logging.info(env._support_ptrs)
     logging.info("Stream indices")
@@ -39,14 +41,14 @@ def main():
         logging.info("Current ptrs", env.current_ptrs)
         logging.info("Raw observation:")
         logging.info([d.to_dict() for d in raw_obs])
-        logging.info("Observation distribution:")
+        logging.info("pred:")
         logging.info(pred)
         true_labels = env.leak_labels()
         logging.info("True labels:")
         logging.info(true_labels)
 
         logging.info("\n")
-        requested_label = aggressive(pred)
+        requested_label = strategy.observe(pred)
         logging.info("Requested label: ", requested_label)
         logging.info("Environment label request now.")
 

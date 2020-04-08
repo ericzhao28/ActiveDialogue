@@ -2,7 +2,7 @@ from ActiveDialogue.environments.dst_env import DSTEnv
 from ActiveDialogue.datasets.toy.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.main.utils import get_args
-from ActiveDialogue.strategies.uncertainties import lc, bald
+from ActiveDialogue.strategies.uncertainties import entropy, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 import logging
 

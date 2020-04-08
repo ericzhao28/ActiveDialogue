@@ -1,13 +1,27 @@
 import numpy as np
 from collections import Counter
 
+def mode_rows(a):
+    a = np.ascontiguousarray(a)
+    void_dt = np.dtype((np.void, a.dtype.itemsize * np.prod(a.shape[1:])))
+    _,ids, count = np.unique(a.view(void_dt).ravel(), \
+                                return_index=1,return_counts=1)
+    largest_count_id = ids[count.argmax()]
+    most_frequent_row = a[largest_count_id]
+    return most_frequent_row, count.argmax()
+
 
 def entropy(pred):
+    pred = np.array(pred)
     return np.sum(partial_entropy(pred), axis=1)
 
 
 def bald(preds):
-    return 1 - Counter(map(tuple, preds)).most_common()[1] / len(preds)
+    preds = np.array(preds).transpose([1, 0, 2]) > 0.5
+    results = []
+    for p in preds:
+        results.append(1 - mode_rows(p)[1] / len(p))
+    return np.array(results)
 
 
 def partial_entropy(pred):

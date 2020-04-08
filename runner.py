@@ -15,11 +15,31 @@ python3 -m ActiveDialogue.main.vanilla \
   --seed 1 \
   --epochs 20 \
   --seed_epochs 100 \
+  --model glad \
+  --init_threshold 0.2 \
+""",
+"""
+python3 -m ActiveDialogue.main.vanilla \
+  --strategy entropy \
+  --gamma 0.7 \
+  --seed 1 \
+  --epochs 20 \
+  --seed_epochs 100 \
+  --model glad \
+  --init_threshold 0.2 \
+""",
+"""
+python3 -m ActiveDialogue.main.vanilla \
+  --strategy aggressive \
+  --gamma 0.7 \
+  --seed 1 \
+  --epochs 20 \
+  --seed_epochs 100 \
   --model glad
 """,
 """
 python3 -m ActiveDialogue.main.vanilla \
-  --strategy lc \
+  --strategy passive \
   --gamma 0.7 \
   --seed 1 \
   --epochs 20 \
