@@ -112,7 +112,8 @@ def main():
             env.load(prefix=model_id)
 
     # Final fit
-    final_metrics = env.fit(prefix="final_fit_" + model_id,
+    final_metrics = env.fit(epochs=50,
+                            prefix="final_fit_" + model_id,
                             reset_model=True)
     for k, v in final_metrics.items():
         logger.log_metric("Final " + k, v)
