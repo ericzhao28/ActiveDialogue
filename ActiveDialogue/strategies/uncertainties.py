@@ -8,7 +8,7 @@ def mode_rows(a):
                                 return_index=1,return_counts=1)
     largest_count_id = ids[count.argmax()]
     most_frequent_row = a[largest_count_id]
-    return most_frequent_row, count.argmax()
+    return most_frequent_row, count.max()
 
 
 def entropy(pred):
@@ -25,7 +25,7 @@ def bald(preds):
 
 
 def partial_entropy(pred):
-    return pred * np.log(pred) + (1 - pred) * np.log(1 - pred)
+    return -1 * (pred * np.log(pred + 1e-8) + (1 - pred) * np.log(1 - pred + 1e-8))
 
 
 def partial_bald(preds):
