@@ -165,22 +165,23 @@ class DSTEnv():
         self._model.train()
 
         for epoch in range(epochs):
-            logging.debug('Starting fit epoch {}.'.format(epoch))
+            if epoch > 0:
+                logging.debug('Starting fit epoch {}.'.format(epoch))
 
-            # Batch from seed, looping if compound
-            seed_iterator = self._dataset.batch(
-                batch_size=self._args.seed_batch_size,
-                ptrs=self._seed_ptrs,
-                shuffle=True,
-                loop=False)
+                # Batch from seed, looping if compound
+                seed_iterator = self._dataset.batch(
+                    batch_size=self._args.seed_batch_size,
+                    ptrs=self._seed_ptrs,
+                    shuffle=True,
+                    loop=False)
 
-            for batch, batch_labels in seed_iterator:
-                self._model.zero_grad()
-                loss, _ = self._model.forward(batch,
-                                              batch_labels,
-                                              training=True)
-                loss.backward()
-                self._model.optimizer.step()
+                for batch, batch_labels in seed_iterator:
+                    self._model.zero_grad()
+                    loss, _ = self._model.forward(batch,
+                                                  batch_labels,
+                                                  training=True)
+                    loss.backward()
+                    self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)

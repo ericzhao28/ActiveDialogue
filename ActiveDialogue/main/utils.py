@@ -13,12 +13,12 @@ def get_args():
     parser.add_argument('--gamma', type=float, default=0.2)
 
     # General hyperparameters
-    parser.add_argument('--lr', default=0.002, type=float)
+    parser.add_argument('--lr', default=0.003, type=float)
     parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--seed_epochs', type=int, default=100)
-    parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--seed_batch_size', type=int, default=64)
-    parser.add_argument('--comp_batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--seed_batch_size', type=int, default=128)
+    parser.add_argument('--comp_batch_size', type=int, default=128)
     parser.add_argument('--inference_batch_size', type=int, default=512)
 
     # Practical settings
@@ -28,7 +28,7 @@ def get_args():
     # AL Setting
     parser.add_argument('--al_batch', type=int, default=256)
     parser.add_argument('--label_budget', type=int, default=256)
-    parser.add_argument('--seed_size', type=int, default=1500)
+    parser.add_argument('--seed_size', type=int, default=1536)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--num_passes', type=int, default=1)
 

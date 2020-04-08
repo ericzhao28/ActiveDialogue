@@ -12,43 +12,15 @@ experiments = [
 python3 -m ActiveDialogue.main.vanilla \
   --strategy bald \
   --gamma 0.7 \
-  --seed 1 \
-  --epochs 20 \
+  --seed 2 \
+  --epochs 1 \
+  --strategy aggressive \
+  --label_budget 1 \
   --seed_epochs 100 \
   --model glad \
   --init_threshold 0.2 \
-  --device 0 \
-""",
-"""
-python3 -m ActiveDialogue.main.vanilla \
-  --strategy entropy \
-  --gamma 0.7 \
-  --seed 1 \
-  --epochs 20 \
-  --seed_epochs 100 \
-  --model glad \
-  --init_threshold -3.0 \
-  --device 0 \
-""",
-"""
-python3 -m ActiveDialogue.main.vanilla \
-  --strategy aggressive \
-  --gamma 0.7 \
-  --seed 1 \
-  --epochs 20 \
-  --seed_epochs 100 \
-  --model glad \
-  --device 0 \
-""",
-"""
-python3 -m ActiveDialogue.main.vanilla \
-  --strategy passive \
-  --gamma 0.7 \
-  --seed 1 \
-  --epochs 20 \
-  --seed_epochs 100 \
-  --model glad \
-  --device 0 \
+  --force_seed \
+  --device 0
 """,
 ]
 
