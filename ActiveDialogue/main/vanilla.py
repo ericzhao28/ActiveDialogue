@@ -6,7 +6,7 @@ from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
 from ActiveDialogue.config import comet_ml_key, lib_dir
 from ActiveDialogue.strategies.vanilla_baselines import aggressive, random, passive
-from ActiveDialogue.strategies.uncertainties import lc, bald
+from ActiveDialogue.strategies.uncertainties import entropy, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
 import numpy as np
 import logging
@@ -45,9 +45,9 @@ def main():
         logging.debug("Current seed metrics: {}".format(env.metrics(True)))
 
     use_strategy = False
-    if args.strategy == "lc":
+    if args.strategy == "entropy":
         use_strategy = True
-        strategy = lc
+        strategy = entropy
     elif args.strategy == "bald":
         use_strategy = True
         strategy = bald

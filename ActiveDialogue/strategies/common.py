@@ -17,7 +17,8 @@ class ThresholdStrategy():
 
     def observe(self, obs):
         aobs, legend = split(obs)
-        value = self._measure_uncertainty(aobs) > self.threshold
+        value = self._measure_uncertainty(aobs)
+        value = value > self.threshold
         value = np.array(value, dtype=np.int32)
         if self._need_unsplit:
             value = unsplit(value, list(obs.keys()), legend)

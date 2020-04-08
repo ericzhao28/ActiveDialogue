@@ -1,16 +1,17 @@
 import numpy as np
+from collections import Counter
 
 
-def lc(pred):
-    return np.max(partial_lc(pred), axis=1)
+def entropy(pred):
+    return np.sum(partial_entropy(pred), axis=1)
 
 
 def bald(preds):
-    return np.max(partial_bald(preds), axis=1)
+    return 1 - Counter(map(tuple, preds)).most_common()[1] / len(preds)
 
 
-def partial_lc(pred):
-    return np.min(np.array([pred, 1 - pred]), axis=0)
+def partial_entropy(pred):
+    return pred * np.log(pred) + (1 - pred) * np.log(1 - pred)
 
 
 def partial_bald(preds):
@@ -18,8 +19,8 @@ def partial_bald(preds):
     return np.min([disag, 1 - disag], axis=1)
 
 
-def lc_singlet(pred):
-    c = partial_lc(pred)
+def entropy_singlet(pred):
+    c = partial_entropy(pred)
     mask = np.array(np.ones_like(c), dtype=np.bool_)
     mask[np.argmax(c, axis=1)] = False
     c[mask] = 0
