@@ -10,7 +10,7 @@ def get_args():
     parser.add_argument('--strategy', type=str, default="")
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--init_threshold', type=float, default=0.5)
-    parser.add_argument('--gamma', type=float, default=0.2)
+    parser.add_argument('--gamma', type=float, default=0.75)
 
     # General hyperparameters
     parser.add_argument('--lr', default=0.003, type=float)
@@ -26,9 +26,9 @@ def get_args():
     parser.add_argument('--noise_fp', type=float, default=0.0)
 
     # AL Setting
-    parser.add_argument('--al_batch', type=int, default=256)
-    parser.add_argument('--label_budget', type=int, default=256)
-    parser.add_argument('--seed_size', type=int, default=1536)
+    parser.add_argument('--al_batch', type=int, default=64)
+    parser.add_argument('--label_budget', type=int, default=160)
+    parser.add_argument('--seed_size', type=int, default=1000)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--num_passes', type=int, default=1)
 

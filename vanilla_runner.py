@@ -16,7 +16,7 @@ python3 -m ActiveDialogue.main.vanilla \
   --epochs 20 \
   --seed_epochs 100 \
   --model glad \
-  --init_threshold 0.2 \
+  --init_threshold 0.4 \
   --device 0 \
 """,
 """
@@ -27,7 +27,7 @@ python3 -m ActiveDialogue.main.vanilla \
   --epochs 20 \
   --seed_epochs 100 \
   --model glad \
-  --init_threshold 7.0 \
+  --init_threshold 10.0 \
   --device 0 \
 """,
 """
