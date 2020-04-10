@@ -1,7 +1,7 @@
 import os
 
 if os.path.exists("/home/em/projects/ActiveDialogue/ActiveDialogue"):
-    lib_dir = "/home/em/projects/ActiveDialogue/ActiveDialogue"
+    lib_dir = "/home/em/projects/ActiveDialogue"
 elif os.path.exists("/home/ubuntu/ActiveDialogue"):
     lib_dir = "/home/ubuntu/ActiveDialogue"
 elif os.path.exists("/home/ubuntu/projects/ActiveDialogue"):

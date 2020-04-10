@@ -6,7 +6,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # Common Settings
-    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=3)
     parser.add_argument('--strategy', type=str, default="")
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--init_threshold', type=float, default=0.5)
