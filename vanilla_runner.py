@@ -9,12 +9,17 @@ N_GPU = len(GPU_available)
 
 experiments = [
 """
+python3 -m ActiveDialogue.main.seed \
+  --lr 0.003 \
+  --seed 2 \
+  --seed_epochs 100 \
+  --model glad \
+  --device 0 \
+""",
+"""
 python3 -m ActiveDialogue.main.vanilla \
   --strategy bald \
-  --gamma 0.7 \
   --seed 2 \
-  --epochs 20 \
-  --seed_epochs 100 \
   --model glad \
   --init_threshold 0.4 \
   --device 0 \
@@ -22,10 +27,7 @@ python3 -m ActiveDialogue.main.vanilla \
 """
 python3 -m ActiveDialogue.main.vanilla \
   --strategy entropy \
-  --gamma 0.7 \
   --seed 2 \
-  --epochs 20 \
-  --seed_epochs 100 \
   --model glad \
   --init_threshold 10.0 \
   --device 0 \
@@ -33,20 +35,14 @@ python3 -m ActiveDialogue.main.vanilla \
 """
 python3 -m ActiveDialogue.main.vanilla \
   --strategy aggressive \
-  --gamma 0.7 \
   --seed 2 \
-  --epochs 20 \
-  --seed_epochs 100 \
   --model glad \
   --device 0 \
 """,
 """
 python3 -m ActiveDialogue.main.vanilla \
   --strategy passive \
-  --gamma 0.7 \
   --seed 2 \
-  --epochs 20 \
-  --seed_epochs 100 \
   --model glad \
   --device 0 \
 """,

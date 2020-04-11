@@ -13,7 +13,7 @@ def get_args():
     parser.add_argument('--gamma', type=float, default=0.75)
 
     # General hyperparameters
-    parser.add_argument('--lr', default=0.003, type=float)
+    parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--final_epochs', type=int, default=50)
     parser.add_argument('--seed_epochs', type=int, default=100)

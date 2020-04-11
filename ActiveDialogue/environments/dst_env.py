@@ -153,7 +153,7 @@ class DSTEnv():
 
         return len(label)
 
-    def seed_fit(self, epochs=None, prefix=""):
+    def seed_fit(self, epochs=None, prefix="", logger=None):
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
@@ -185,6 +185,10 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
+            if logger:
+                logger.log_current_epoch(epoch)
+                for k, v in metrics.items():
+                    logger.log_metric(k, v)
             logging.info("Epoch metrics: {}".format(metrics))
             if metrics[self._args.stop] > best[self._args.stop]:
                 logging.info("Saving best!")
