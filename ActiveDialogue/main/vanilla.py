@@ -49,7 +49,6 @@ def main(args=None):
                     logging.info("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
         env.load('seed')
-        logging.info("Current seed metrics: {}".format(env.metrics(True)))
 
     use_strategy = False
     if args.strategy == "entropy":
@@ -70,6 +69,13 @@ def main(args=None):
 
     ended = False
     i = 0
+
+    initial_metrics = env.metrics(True)
+    logger.log_current_epoch(i)
+    logging.info("Initial metrics: {}".format(initial_metrics))
+    for k, v in initial_metrics.items():
+        logger.log_metric(k, v)
+
     with logger.train():
         while not ended:
             i += 1
