@@ -20,7 +20,7 @@ def main(cmd=None):
         args.seed, args.strategy, args.noise_fn, args.noise_fp, args.num_passes, args.seed_size, args.model, args.batch_size, args.gamma, args.label_budget, args.epochs)
 
     logging.basicConfig(
-        filename=lib_dir + "/exp/" + model_id,
+        filename="{}/{}.txt".format(args.dout, model_id),
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO)

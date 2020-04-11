@@ -96,7 +96,7 @@ def get_args(cmd):
     else:
         args = parser.parse_args()
 
-    args.dout = os.path.join(args.dexp, args.model, args.nick)
+    args.dout = os.path.join(args.dexp, args.nick)
     args.dropout = {
         d.split('=')[0]: float(d.split('=')[1]) for d in args.dropout
     }
