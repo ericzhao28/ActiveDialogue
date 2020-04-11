@@ -2,7 +2,7 @@ import argparse
 import os
 
 
-def get_args():
+def get_args(cmd):
     parser = argparse.ArgumentParser()
 
     # Common Settings
@@ -91,7 +91,11 @@ def get_args():
     parser.set_defaults(optimistic_weighting=False)
 
     # Parse arguments
-    args = parser.parse_args()
+    if cmd:
+        args = parser.parse_args(cmd)
+    else:
+        args = parser.parse_args()
+
     args.dout = os.path.join(args.dexp, args.model, args.nick)
     args.dropout = {
         d.split('=')[0]: float(d.split('=')[1]) for d in args.dropout

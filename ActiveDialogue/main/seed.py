@@ -9,9 +9,8 @@ import sys
 import logging
 
 
-def main(args=None):
-    if args is None:
-        args = get_args()
+def main(cmd=None):
+    args = get_args(cmd)
 
     model_id = "seed_{}_seed_size_{}_model_{}_seed_batch_size_{}_seed_epochs_{}".format(
         args.seed, args.seed_size, args.model, args.seed_batch_size, args.seed_epochs)
