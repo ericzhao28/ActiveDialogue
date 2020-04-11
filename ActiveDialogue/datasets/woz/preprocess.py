@@ -37,13 +37,19 @@ if __name__ == '__main__':
             os.makedirs(draw)
         download(
             'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_train_en.json',
-            os.path.join(draw, 'train.json'))
+            os.path.join(
+                draw,
+                'train.json'))
         download(
             'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_validate_en.json',
-            os.path.join(draw, 'dev.json'))
+            os.path.join(
+                draw,
+                'dev.json'))
         download(
             'https://github.com/nmrksic/neural-belief-tracker/raw/master/data/woz/woz_test_en.json',
-            os.path.join(draw, 'test.json'))
+            os.path.join(
+                draw,
+                'test.json'))
 
     if missing_files(dann, files=splits + ['ontology', 'vocab', 'emb']):
         if not os.path.isdir(dann):

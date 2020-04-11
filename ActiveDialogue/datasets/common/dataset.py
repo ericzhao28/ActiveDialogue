@@ -41,7 +41,8 @@ class Dataset:
             s: np.zeros((len(self.turns), len(ontology.values[s])),
                         dtype=np.float32) for s in ontology.slots
         }
-        logging.info("{} classes".format(sum([len(ontology.values[s]) for s in ontology.slots])))
+        logging.info("{} classes".format(
+            sum([len(ontology.values[s]) for s in ontology.slots])))
         for i, turn in enumerate(self.turns):
             for slot, value in turn.turn_label:
                 self.turns_labels[slot][

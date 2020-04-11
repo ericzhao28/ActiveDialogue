@@ -105,7 +105,7 @@ class GCE(Model):
             # Add slot embedding
             s_emb = self.emb_fixed(
                 torch.LongTensor([self.vocab.word2index(s.split()[0])
-                                 ]).to(self.device))
+                                  ]).to(self.device))
 
             # for each slot, compute the scores for each value
             H_utt, c_utt = self.utt_encoder(utterance,

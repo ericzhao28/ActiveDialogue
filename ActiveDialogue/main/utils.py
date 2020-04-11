@@ -45,7 +45,10 @@ def get_args():
     # Frozen threshold
     parser.add_argument('--threshold_strategy', type=str, default="fixed")
     parser.add_argument('--threshold_scaler', type=float, default=0.95)
-    parser.add_argument('--rejection_ratio', type=float, default=16.0)  # for thresholds
+    parser.add_argument(
+        '--rejection_ratio',
+        type=float,
+        default=16.0)  # for thresholds
     parser.add_argument('--threshold_noise_std', type=float, default=0.05)
 
     # Frozen hyperparams

@@ -14,7 +14,7 @@ def main(args=None):
         args = get_args()
 
     model_id = "seed_{}_seed_size_{}_model_{}_seed_batch_size_{}_seed_epochs_{}".format(
-            args.seed, args.seed_size, args.model, args.seed_batch_size, args.seed_epochs)
+        args.seed, args.seed_size, args.model, args.seed_batch_size, args.seed_epochs)
 
     logging.basicConfig(
         filename=lib_dir + "/exp/" + model_id,

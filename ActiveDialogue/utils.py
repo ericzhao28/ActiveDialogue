@@ -10,11 +10,10 @@ def split(x):
             legend.append(legend[-1] + x[k].shape[-1])
         return np.concatenate(data, axis=-1), legend
 
-    if type(x) == list:
+    if isinstance(x, list):
         return [sub_split(y)[0] for y in x], sub_split(x[0])[1]
     else:
         return sub_split(x)
-
 
 
 def unsplit(x, keys, legend):
