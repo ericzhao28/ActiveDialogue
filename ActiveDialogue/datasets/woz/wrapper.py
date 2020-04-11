@@ -9,7 +9,7 @@ import os
 
 
 def load_dataset(splits=('train', 'dev', 'test')):
-    logging.debug("Loading Woz dataset.")
+    logging.info("Loading Woz dataset.")
 
     with open(os.path.join(mnt_dir + "/woz/ann", 'ontology.json')) as f:
         ontology = Ontology.from_dict(json.load(f))
@@ -24,7 +24,7 @@ def load_dataset(splits=('train', 'dev', 'test')):
     for split in splits:
         with open(os.path.join(mnt_dir + "/woz/ann",
                                '{}.json'.format(split))) as f:
-            logging.warn('loading split {}'.format(split))
+            logging.info('Woz: loading split {}'.format(split))
             dataset[split] = Dataset.from_dict(json.load(f), ontology)
 
     logging.info('dataset sizes: {}'.format(

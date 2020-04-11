@@ -12,14 +12,20 @@ import numpy as np
 import logging
 
 
-def main():
-    args = get_args()
+def main(args=None):
+    if args is None:
+        args = get_args()
+
     model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(args.seed, args.strategy, args.noise_fn, args.noise_fp,
                 args.num_passes, args.seed_size, args.model, args.batch_size,
                 args.gamma, args.label_budget, args.epochs)
+
     logging.basicConfig(
         filename=lib_dir + "/exp/" + model_id,
-        level=logging.DEBUG)
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO)
+    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
     logger.log_parameters(vars(args))
@@ -33,16 +39,16 @@ def main():
     if args.seed_size:
         with logger.train():
             if not env.load('seed'):
-                logging.debug("No loaded seed. Training now.")
+                logging.info("No loaded seed. Training now.")
                 env.seed_fit(args.seed_epochs, prefix="seed")
-                logging.debug("Seed completed.")
+                logging.info("Seed completed.")
             else:
-                logging.debug("Loaded seed.")
+                logging.info("Loaded seed.")
                 if args.force_seed:
-                    logging.debug("Training seed regardless.")
+                    logging.info("Training seed regardless.")
                     env.seed_fit(args.seed_epochs, prefix="seed")
         env.load('seed')
-        logging.debug("Current seed metrics: {}".format(env.metrics(True)))
+        logging.info("Current seed metrics: {}".format(env.metrics(True)))
 
     use_strategy = False
     if args.strategy == "entropy":
@@ -117,6 +123,8 @@ def main():
                             reset_model=True)
     for k, v in final_metrics.items():
         logger.log_metric("Final " + k, v)
+        logging.info("Final " + k + ": " + str(v))
+    logging.info("Run finished.")
 
 
 if __name__ == "__main__":

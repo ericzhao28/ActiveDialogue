@@ -22,7 +22,7 @@ def load_dataset(splits=('train', 'dev', 'test')):
     for split in splits:
         with open(os.path.join(mnt_dir + "/toy/ann",
                                '{}.json'.format(split))) as f:
-            logging.warn('loading split {}'.format(split))
+            logging.info('loading split {}'.format(split))
             dataset[split] = Dataset.from_dict(json.load(f), ontology)
 
     logging.info('dataset sizes: {}'.format(

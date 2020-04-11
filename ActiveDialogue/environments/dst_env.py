@@ -32,8 +32,8 @@ class DSTEnv():
         self._num_turns = num_turns
         self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
         assert self.pool_size == len(self._ptrs)
-        logging.debug("Seed size: {}".format(len(self._seed_ptrs)))
-        logging.debug("Pool size: {}".format(len(self._ptrs)))
+        logging.info("Seed size: {}".format(len(self._seed_ptrs)))
+        logging.info("Pool size: {}".format(len(self._ptrs)))
 
         # Inject noise
         if args.noise_fn > 0 or args.noise_fp > 0:
@@ -166,7 +166,7 @@ class DSTEnv():
 
         for epoch in range(epochs):
             if epoch > 0:
-                logging.debug('Starting fit epoch {}.'.format(epoch))
+                logging.info('Starting fit epoch {}.'.format(epoch))
 
                 # Batch from seed, looping if compound
                 seed_iterator = self._dataset.batch(
@@ -185,9 +185,9 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: {}".format(metrics))
+            logging.info("Epoch metrics: {}".format(metrics))
             if metrics[self._args.stop] > best[self._args.stop]:
-                logging.debug("Saving best!")
+                logging.info("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics
 
@@ -211,7 +211,7 @@ class DSTEnv():
         self._model.train()
 
         for epoch in range(epochs):
-            logging.debug('Starting fit epoch {}.'.format(epoch))
+            logging.info('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -223,7 +223,7 @@ class DSTEnv():
                 batch_size=self._args.batch_size,
                 ptrs=self._support_ptrs,
                 shuffle=True)
-            logging.debug("Fitting on {} datapoints.".format(
+            logging.info("Fitting on {} datapoints.".format(
                 len(self._support_ptrs)))
 
             for batch, batch_labels in support_iterator:
@@ -240,10 +240,10 @@ class DSTEnv():
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: {}".format(metrics))
+            logging.info("Epoch metrics: {}".format(metrics))
             if best is None or metrics[self._args.stop] > best[
                     self._args.stop]:
-                logging.debug("Saving best!")
+                logging.info("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
                 best = metrics
 
@@ -251,6 +251,6 @@ class DSTEnv():
         return best
 
     def eval(self):
-        logging.debug('Running dev evaluation')
+        logging.info('Running dev evaluation')
         self._model.eval()
         return self._model.run_eval(self._test_dataset, self._args)
