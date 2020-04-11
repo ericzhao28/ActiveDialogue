@@ -14,7 +14,8 @@ def get_args():
 
     # General hyperparameters
     parser.add_argument('--lr', default=0.003, type=float)
-    parser.add_argument('--epochs', type=int, default=40)
+    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--final_epochs', type=int, default=50)
     parser.add_argument('--seed_epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--seed_batch_size', type=int, default=128)
