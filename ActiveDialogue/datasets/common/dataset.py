@@ -20,6 +20,7 @@ class Dataset:
         """
         # Build optionally shuffled list of dialogues.
         dialogues = np.array(dialogues, dtype=np.object_)
+        assert not shuffle_dlgs
         if shuffle_dlgs:
             dialogues = dialogues[np.random.permutation(
                 np.arange(len(dialogues)))]
@@ -60,7 +61,7 @@ class Dataset:
                 v_mask[np.random.uniform(size=v.shape) < fn] = 1
                 self.turns_labels[s][v_mask] = 0
 
-    def get_turn_ptrs(self, num_passes, seed_size, sample_mode):
+    def get_turn_ptrs(self, num_passes, seed_size, sample_mode, shuffle=True):
         """Get a list of ptrs into Dataset.turns by SS env.
         Args:
             num_passes: Num of online passes.
@@ -80,6 +81,8 @@ class Dataset:
         # are reserved for seeding).
         seed_ptrs = np.arange(seed_size)
         orig_nonseed_ptrs = np.arange(seed_size, len(self.turns))
+        if shuffle:
+            np.random.shuffle(orig_nonseed_ptrs)
         assert len(orig_nonseed_ptrs) > 0
 
         if sample_mode == "singlepass":

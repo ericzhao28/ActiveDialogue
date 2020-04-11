@@ -29,6 +29,7 @@ class DSTEnv():
         self._support_ptrs = np.array([], dtype=np.int32)
         self._ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.num_passes, args.seed_size, sample_mode=args.sample_mode)
+        logging.info("First 10 dataset stream pointers: {}".format(self._ptrs[:10]))
         self._num_turns = num_turns
         self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
         assert self.pool_size == len(self._ptrs)
