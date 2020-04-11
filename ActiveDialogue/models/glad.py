@@ -64,7 +64,7 @@ class GLADEncoder(nn.Module):
         nn.init.uniform_(self.beta_raw, -0.01, 0.01)
 
     def beta(self, slot):
-        return F.sigmoid(self.beta_raw[self.slots.index(slot)])
+        return torch.sigmoid(self.beta_raw[self.slots.index(slot)])
 
     def forward(self, x, x_len, slot, default_dropout=0.2):
         local_rnn = getattr(self, '{}_rnn'.format(slot))
@@ -155,7 +155,7 @@ class GLAD(Model):
             y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
 
             # combine the scores
-            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts).to(
+            ys[s] = torch.sigmoid(y_utts + self.score_weight * y_acts).to(
                 self.device)
 
         return ys

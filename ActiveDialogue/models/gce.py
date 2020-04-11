@@ -138,6 +138,6 @@ class GCE(Model):
             y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
 
             # combine the scores
-            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts)
+            ys[s] = torch.sigmoid(y_utts + self.score_weight * y_acts)
 
         return ys
