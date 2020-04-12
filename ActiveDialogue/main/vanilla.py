@@ -13,7 +13,7 @@ import sys
 import logging
 
 
-def main(cmd=None):
+def main(cmd=None, stdout=False):
     args = get_args(cmd)
 
     model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
@@ -24,6 +24,8 @@ def main(cmd=None):
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO)
+    if stdout:
+        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
     logger.log_parameters(vars(args))
