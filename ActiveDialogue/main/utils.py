@@ -3,7 +3,7 @@ import os
 import shlex
 
 
-def get_args(cmd):
+def get_args(cmd=None):
     parser = argparse.ArgumentParser()
 
     # Common Settings

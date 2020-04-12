@@ -21,6 +21,8 @@ class ThresholdStrategy():
         value = value > self.threshold
         value = np.array(value, dtype=np.int32)
         if self._need_unsplit:
+            if isinstance(obs, list):
+                obs = obs[0]
             value = unsplit(value, list(obs.keys()), legend)
         return value
 
