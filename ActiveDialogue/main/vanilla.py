@@ -4,7 +4,7 @@ from ActiveDialogue.datasets.woz.wrapper import load_dataset
 from ActiveDialogue.models.glad import GLAD
 from ActiveDialogue.models.gce import GCE
 from ActiveDialogue.main.utils import get_args
-from ActiveDialogue.config import comet_ml_key, lib_dir
+from ActiveDialogue.config import comet_ml_key
 from ActiveDialogue.strategies.vanilla_baselines import aggressive, random, passive
 from ActiveDialogue.strategies.uncertainties import entropy, bald
 from ActiveDialogue.strategies.common import FixedThresholdStrategy, VariableThresholdStrategy, StochasticVariableThresholdStrategy
