@@ -111,7 +111,7 @@ def main(cmd=None, stdout=True):
             # Environment stepping
             ended = env.step()
             # Fit every al_batch of items
-            best = env.fit(prefix=model_id, reset_model=False)
+            best = env.fit(prefix=model_id, reset_model=True)
             for k, v in best.items():
                 logger.log_metric(k, v)
             env.load(prefix=model_id)

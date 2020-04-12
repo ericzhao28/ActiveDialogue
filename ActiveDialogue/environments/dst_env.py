@@ -219,29 +219,19 @@ class DSTEnv():
         for epoch in range(epochs):
             logging.info('Starting fit epoch {}.'.format(epoch))
 
-            # Batch from seed, looping if compound
-            seed_iterator = self._dataset.batch(
-                batch_size=self._args.comp_batch_size,
-                ptrs=self._seed_ptrs,
-                shuffle=True,
-                loop=True)
             support_iterator = self._dataset.batch(
                 batch_size=self._args.batch_size,
-                ptrs=self._support_ptrs,
+                ptrs=self._support_ptrs + self._seed_ptrs,
                 shuffle=True)
             logging.info("Fitting on {} datapoints.".format(
-                len(self._support_ptrs)))
+                len(self._support_ptrs + self._seed_ptrs)))
 
             for batch, batch_labels in support_iterator:
-                seed_batch, seed_batch_labels = next(seed_iterator)
                 self._model.zero_grad()
                 loss, _ = self._model.forward(batch,
                                               batch_labels,
                                               training=True)
-                seed_loss, _ = self._model.forward(seed_batch,
-                                                   seed_batch_labels,
-                                                   training=True)
-                (loss + self._args.gamma * seed_loss).backward()
+                loss.backward()
                 self._model.optimizer.step()
 
             # Report metrics, saving if stop metric is best

@@ -15,10 +15,10 @@ def get_args(cmd=None):
 
     # General hyperparameters
     parser.add_argument('--lr', default=0.001, type=float)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--final_epochs', type=int, default=50)
-    parser.add_argument('--seed_epochs', type=int, default=100)
-    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--seed_epochs', type=int, default=50)
+    parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed_batch_size', type=int, default=128)
     parser.add_argument('--comp_batch_size', type=int, default=128)
     parser.add_argument('--inference_batch_size', type=int, default=512)
@@ -28,9 +28,9 @@ def get_args(cmd=None):
     parser.add_argument('--noise_fp', type=float, default=0.0)
 
     # AL Setting
-    parser.add_argument('--al_batch', type=int, default=64)
-    parser.add_argument('--label_budget', type=int, default=160)
-    parser.add_argument('--seed_size', type=int, default=1000)
+    parser.add_argument('--al_batch', type=int, default=256)
+    parser.add_argument('--label_budget', type=int, default=400)
+    parser.add_argument('--seed_size', type=int, default=512)
     parser.add_argument('--sample_mode', type=str, default="singlepass")
     parser.add_argument('--num_passes', type=int, default=1)
 

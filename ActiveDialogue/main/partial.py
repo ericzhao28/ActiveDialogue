@@ -13,8 +13,8 @@ import sys
 import logging
 
 
-def main(cmd=None):
-    args = get_args(cmd)
+def main(cmd=None, stdout=True):
+    args = get_args(cmd, stdout)
 
     model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
         args.seed, args.strategy, args.noise_fn, args.noise_fp, args.num_passes, args.seed_size, args.model, args.batch_size, args.gamma, args.label_budget, args.epochs)
@@ -116,7 +116,7 @@ def main(cmd=None):
             # Environment stepping
             ended = env.step()
             # Fit every al_batch of items
-            best = env.fit(prefix=model_id, reset_model=False)
+            best = env.fit(prefix=model_id, reset_model=True)
             for k, v in best.items():
                 logger.log_metric(k, v)
             env.load(prefix=model_id)
