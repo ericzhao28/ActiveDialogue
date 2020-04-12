@@ -13,7 +13,7 @@ import sys
 import logging
 
 
-def main(cmd=None, stdout=False):
+def main(cmd=None, stdout=True):
     args = get_args(cmd)
 
     model_id = "seed_{}_strat_{}_noise_fn_{}_noise_fp_{}_num_passes_{}_seed_size_{}_model_{}_batch_size_{}_gamma_{}_label_budget_{}_epochs_{}".format(
