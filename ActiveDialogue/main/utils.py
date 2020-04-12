@@ -92,7 +92,7 @@ def get_args(cmd):
 
     # Parse arguments
     if cmd:
-        args = parser.parse_args(cmd)
+        args = parser.parse_args(cmd.split())
     else:
         args = parser.parse_args()
 
