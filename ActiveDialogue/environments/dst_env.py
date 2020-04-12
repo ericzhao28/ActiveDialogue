@@ -211,7 +211,7 @@ class DSTEnv():
             self._model.set_optimizer()
 
         iteration = 0
-        best = None
+        best = self.metrics(True)
         if not epochs:
             epochs = self._args.epochs
         self._model.train()
