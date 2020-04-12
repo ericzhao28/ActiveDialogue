@@ -16,7 +16,7 @@ def main(cmd=None):
         args.seed, args.seed_size, args.model, args.seed_batch_size, args.seed_epochs)
 
     logging.basicConfig(
-        filename=lib_dir + "/exp/" + model_id,
+        filename="{}/{}.txt".format(args.dexp, model_id),
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO)
