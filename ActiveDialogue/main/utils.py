@@ -81,6 +81,7 @@ def get_args(cmd):
     # Outdated (bags)
     parser.add_argument('--fit_items', type=int, default=512)
     parser.add_argument('--label_timeout', type=int, default=10)
+    parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
     parser.add_argument('--sl_reduction',
                         dest='sl_reduction',
                         action='store_true')
