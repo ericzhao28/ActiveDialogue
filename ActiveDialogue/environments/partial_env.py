@@ -26,7 +26,7 @@ class PartialEnv(DSTEnv):
         if args.seed_size:
             for s in self._ontology.slots:
                 self._support_masks[s][self._support_ptrs, :] = 1
-            logging.debug("Seeding")
+            logging.info("Seeding")
 
     def metrics(self, run_eval=False):
         metrics = super().metrics(run_eval)
@@ -85,7 +85,12 @@ class PartialEnv(DSTEnv):
 
         return 0
 
-    def fit(self, epochs=None, prefix=""):
+    def fit(self, epochs=None, prefix="", reset_model=False):
+        # Reset model if necessary
+        if reset_model:
+            self._reset_model()
+            self.load('seed')
+
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
             self._model.set_optimizer()
@@ -97,7 +102,7 @@ class PartialEnv(DSTEnv):
         self._model.train()
 
         for epoch in range(epochs):
-            logging.debug('Starting fit epoch {}.'.format(epoch))
+            logging.info('Starting fit epoch {}.'.format(epoch))
 
             # Batch from seed, looping if compound
             seed_iterator = self._dataset.batch(
@@ -110,7 +115,7 @@ class PartialEnv(DSTEnv):
                 ptrs=self._support_ptrs,
                 shuffle=True,
                 return_ptrs=True)
-            logging.debug("Fitting on {} datapoints.".format(
+            logging.info("Fitting on {} datapoints.".format(
                 len(self._support_ptrs)))
 
             for batch, batch_labels, batch_ptrs in support_iterator:
@@ -132,10 +137,11 @@ class PartialEnv(DSTEnv):
 
             # Report metrics, saving if stop metric is best
             metrics = self.metrics(True)
-            logging.debug("Epoch metrics: {}".format(metrics))
-            if best is None or metrics[self._args.stop] > best:
-                logging.debug("Saving best!")
+            logging.info("Epoch metrics: {}".format(metrics))
+            if best is None or metrics[self._args.stop] > best[self._args.stop]:
+                logging.info("Saving best!")
                 self._model.save({}, identifier=prefix + str(self._args.seed))
-                best = metrics[self._args.stop]
+                best = metrics
 
             self._model.train()
+        return best
