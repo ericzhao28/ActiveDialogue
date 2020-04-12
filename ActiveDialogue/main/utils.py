@@ -1,5 +1,6 @@
 import argparse
 import os
+import shlex
 
 
 def get_args(cmd):
@@ -93,7 +94,7 @@ def get_args(cmd):
 
     # Parse arguments
     if cmd:
-        args = parser.parse_args(cmd.split())
+        args = parser.parse_args(shlex.split(cmd))
     else:
         args = parser.parse_args()
 
