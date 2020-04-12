@@ -205,6 +205,7 @@ class DSTEnv():
         if reset_model:
             self._reset_model()
             self.load('seed')
+            self._model.save({}, identifier=prefix + str(self._args.seed))
 
         # Initialize optimizer and trackers
         if self._model.optimizer is None:
@@ -221,10 +222,10 @@ class DSTEnv():
 
             support_iterator = self._dataset.batch(
                 batch_size=self._args.batch_size,
-                ptrs=self._support_ptrs + self._seed_ptrs,
+                ptrs=np.concatenate([self._support_ptrs, self._seed_ptrs]),
                 shuffle=True)
             logging.info("Fitting on {} datapoints.".format(
-                len(self._support_ptrs + self._seed_ptrs)))
+                len(self._support_ptrs) + len(self._seed_ptrs)))
 
             for batch, batch_labels in support_iterator:
                 self._model.zero_grad()

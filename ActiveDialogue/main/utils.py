@@ -19,7 +19,7 @@ def get_args(cmd=None):
     parser.add_argument('--final_epochs', type=int, default=50)
     parser.add_argument('--seed_epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--seed_batch_size', type=int, default=128)
+    parser.add_argument('--seed_batch_size', type=int, default=64)
     parser.add_argument('--comp_batch_size', type=int, default=128)
     parser.add_argument('--inference_batch_size', type=int, default=512)
 
