@@ -62,7 +62,8 @@ def main(cmd=None):
         elif args.threshold_strategy == "variable":
             strategy = VariableThresholdStrategy(strategy, args, False)
         elif args.threshold_strategy == "randomvariable":
-            strategy = StochasticVariableThresholdStrategy(strategy, args, False)
+            strategy = StochasticVariableThresholdStrategy(
+                strategy, args, False)
 
     ended = False
     i = 0
