@@ -54,40 +54,39 @@ def main():
 
     ended = False
     i = 0
-    with logger.train():
-        while not ended:
-            i += 1
+    while not ended:
+        i += 1
 
-            # Observe environment state
-            logger.log_current_epoch(i)
+        # Observe environment state
+        logger.log_current_epoch(i)
 
-            for j in range(args.label_timeout):
-                if env.can_label:
-                    # Obtain label request from strategy
-                    obs, preds = env.observe()
-                    if args.strategy == "epsiloncheat":
-                        label_request = epsilon_cheat(preds,
-                                                      env.leak_labels())
-                    elif args.strategy == "randomsinglets":
-                        label_request = random_singlets(preds)
-                    elif args.strategy == "passive":
-                        label_request = passive(preds)
-                    elif use_strategy:
-                        label_request = strategy.observe(preds)
-                    else:
-                        raise ValueError()
+        for j in range(args.label_timeout):
+            if env.can_label:
+                # Obtain label request from strategy
+                obs, preds = env.observe()
+                if args.strategy == "epsiloncheat":
+                    label_request = epsilon_cheat(preds,
+                                                  env.leak_labels())
+                elif args.strategy == "randomsinglets":
+                    label_request = random_singlets(preds)
+                elif args.strategy == "passive":
+                    label_request = passive(preds)
+                elif use_strategy:
+                    label_request = strategy.observe(preds)
+                else:
+                    raise ValueError()
 
-                    # Label solicitation
-                    labeled = env.label(label_request)
-                    if use_strategy:
-                        strategy.update(
-                            np.sum(label_request.flatten()),
-                            np.sum(np.ones_like(label_request.flatten())))
+                # Label solicitation
+                labeled = env.label(label_request)
+                if use_strategy:
+                    strategy.update(
+                        np.sum(label_request.flatten()),
+                        np.sum(np.ones_like(label_request.flatten())))
 
-            # Environment stepping
-            ended = env.step()
-            # Fit every al_batch of items
-            env.fit()
+        # Environment stepping
+        ended = env.step()
+        # Fit every al_batch of items
+        env.fit()
 
     logging.debug("Final fit: ", env.seed_fit(100, "final_fit", True))
 

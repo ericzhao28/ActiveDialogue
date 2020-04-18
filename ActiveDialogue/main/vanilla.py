@@ -75,46 +75,45 @@ def main(cmd=None, stdout=True):
     for k, v in initial_metrics.items():
         logger.log_metric(k, v)
 
-    with logger.train():
-        while not ended:
-            i += 1
+    while not ended:
+        i += 1
 
-            # Observe environment state
-            logger.log_current_epoch(i)
+        # Observe environment state
+        logger.log_current_epoch(i)
 
-            if env.can_label:
-                # Obtain label request from strategy
-                obs, preds = env.observe(20 if args.strategy ==
-                                         "bald" else 1)
-                if args.strategy != "bald":
-                    preds = preds[0]
-                if args.strategy == "aggressive":
-                    label_request = aggressive(preds)
-                elif args.strategy == "random":
-                    label_request = random(preds)
-                elif args.strategy == "passive":
-                    label_request = passive(preds)
-                elif use_strategy:
-                    label_request = strategy.observe(preds)
-                else:
-                    raise ValueError()
-
-                # Label solicitation
-                labeled = env.label(label_request)
-                if use_strategy:
-                    strategy.update(
-                        np.sum(label_request.flatten()),
-                        np.sum(np.ones_like(label_request.flatten())))
+        if env.can_label:
+            # Obtain label request from strategy
+            obs, preds = env.observe(20 if args.strategy ==
+                                     "bald" else 1)
+            if args.strategy != "bald":
+                preds = preds[0]
+            if args.strategy == "aggressive":
+                label_request = aggressive(preds)
+            elif args.strategy == "random":
+                label_request = random(preds)
+            elif args.strategy == "passive":
+                label_request = passive(preds)
+            elif use_strategy:
+                label_request = strategy.observe(preds)
             else:
-                break
+                raise ValueError()
 
-            # Environment stepping
-            ended = env.step()
-            # Fit every al_batch of items
-            best = env.fit(prefix=model_id, reset_model=False)
-            for k, v in best.items():
-                logger.log_metric(k, v)
-            env.load(prefix=model_id)
+            # Label solicitation
+            labeled = env.label(label_request)
+            if use_strategy:
+                strategy.update(
+                    np.sum(label_request.flatten()),
+                    np.sum(np.ones_like(label_request.flatten())))
+        else:
+            break
+
+        # Environment stepping
+        ended = env.step()
+        # Fit every al_batch of items
+        best = env.fit(prefix=model_id, reset_model=False)
+        for k, v in best.items():
+            logger.log_metric(k, v)
+        env.load(prefix=model_id)
 
     # Final fit
     final_metrics = env.fit(epochs=args.final_epochs,
