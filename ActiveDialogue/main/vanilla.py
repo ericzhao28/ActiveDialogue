@@ -28,6 +28,7 @@ def main(cmd=None, stdout=True):
         logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
     logger = Experiment(comet_ml_key, project_name="ActiveDialogue")
+    logger.set_name("model {} strategy {}".format(args.model, args.strategy))
     logger.log_parameters(vars(args))
 
     if args.model == "glad":

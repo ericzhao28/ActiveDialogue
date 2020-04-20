@@ -9,7 +9,7 @@ N_GPU = len(GPU_available)
 
 ##################################################
 # Base
-vanilla_params = "--model glad --device 0 --seed 2 --nick vanilla --dexp '/content/ActiveDialogue/exp' --stop joint_goal"
+vanilla_params = "--model glad --device 0 --seed 2 "
 vanilla_seed_cmd = "python3 -m ActiveDialogue.main.seed --lr 0.001 --force_seed --seed_epochs 300 " + vanilla_params
 vanilla_cmd = "python3 -m ActiveDialogue.main.vanilla  " + vanilla_params
 

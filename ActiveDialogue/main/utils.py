@@ -1,9 +1,12 @@
+"""Argument parsing utilities"""
+
 import argparse
 import os
 import shlex
 
 
 def get_args(cmd=None):
+    """Process argparse cmd"""
     parser = argparse.ArgumentParser()
 
     # Common Settings
@@ -11,16 +14,11 @@ def get_args(cmd=None):
     parser.add_argument('--strategy', type=str, default="")
     parser.add_argument('--model', type=str, default='glad')
     parser.add_argument('--init_threshold', type=float, default=0.5)
-    parser.add_argument('--gamma', type=float, default=0.75)
 
     # General hyperparameters
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--epochs', type=int, default=50)
-    parser.add_argument('--final_epochs', type=int, default=50)
-    parser.add_argument('--seed_epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--seed_batch_size', type=int, default=64)
-    parser.add_argument('--comp_batch_size', type=int, default=128)
     parser.add_argument('--inference_batch_size', type=int, default=512)
 
     # Practical settings
@@ -37,11 +35,6 @@ def get_args(cmd=None):
     # Stable
     parser.add_argument('--eval_period', type=int, default=1)
     parser.add_argument('--device', type=int, default=0)
-    parser.set_defaults(device=None)
-    parser.add_argument('--force_seed',
-                        dest='force_seed',
-                        action='store_true')
-    parser.set_defaults(force_seed=False)
 
     # Frozen threshold
     parser.add_argument('--threshold_strategy', type=str, default="fixed")
@@ -80,21 +73,11 @@ def get_args(cmd=None):
                         default='exp')
 
     # Outdated (bags)
-    parser.add_argument('--fit_items', type=int, default=512)
-    parser.add_argument('--label_timeout', type=int, default=10)
     parser.add_argument(
         "-f",
         "--fff",
         help="a dummy argument to fool ipython",
         default="1")
-    parser.add_argument('--sl_reduction',
-                        dest='sl_reduction',
-                        action='store_true')
-    parser.set_defaults(sl_reduction=False)
-    parser.add_argument('--optimistic_weighting',
-                        dest='optimistic_weighting',
-                        action='store_true')
-    parser.set_defaults(optimistic_weighting=False)
 
     # Parse arguments
     if cmd:
@@ -102,10 +85,12 @@ def get_args(cmd=None):
     else:
         args = parser.parse_args()
 
+    # Post-process certain args
     args.dout = os.path.join(args.dexp, args.nick)
     args.dropout = {
         d.split('=')[0]: float(d.split('=')[1]) for d in args.dropout
     }
     if not os.path.isdir(args.dout):
         os.makedirs(args.dout)
+
     return args

@@ -1,5 +1,5 @@
 """
-Run seed training experiments (passive learning).
+Run experiments for finetuning GLAD and GCE models in a passive setting.
 """
 
 import sys
@@ -15,7 +15,7 @@ from ActiveDialogue.config import comet_ml_key
 
 
 def main(cmd=None, stdout=True):
-    """Run seed training for fixed seed."""
+    """Run finetuning experiment for fixed seed."""
 
     # Initialize system
     args = get_args(cmd)
@@ -23,8 +23,10 @@ def main(cmd=None, stdout=True):
     torch.cuda.set_device(args.device)
 
     # Initialize logging
-    model_id = "Base {}, seed size {}, epochs {}, batch size {}, lr {}".format(
-        args.model, args.seed_size, args.epochs, args.batch_size, args.lr)
+    model_id = ("Finetune {}, seed size {}, epochs {}, labels {}, "
+                "batch size {}, lr {}").format(
+                    args.model, args.seed_size, args.epochs,
+                    args.label_budget, args.batch_size, args.lr)
     logging.basicConfig(
         filename="{}/{}.txt".format(args.dout, model_id),
         format='%(asctime)s %(levelname)-8s %(message)s',
@@ -42,11 +44,10 @@ def main(cmd=None, stdout=True):
     elif args.model == "gce":
         model_arch = GCE
     env = DSTEnv(load_dataset, model_arch, args)
-    assert args.seed_size
 
-    # Cowardly refusing to train
-    # if env.load('seed'):
-    #     raise ValueError("Cowardly refusing to train.")
+    # Load seed if need-be
+    if not env.load('seed'):
+        raise ValueError("No loaded seed.")
 
     # Initialize evaluation
     best_metrics = env.metrics(True)
@@ -54,7 +55,8 @@ def main(cmd=None, stdout=True):
         logger.log_metric(k, v, step=0)
     logging.info("Initial metrics: %s", best_metrics)
 
-    # Train seed
+    # Finetune
+    env.label_all()
     for epoch in range(1, args.epochs + 1):
         logging.info('Starting fit epoch %d.', epoch)
         env.fit()
@@ -64,9 +66,7 @@ def main(cmd=None, stdout=True):
             logger.log_metric(k, v, step=epoch)
         if best_metrics is None or metrics[args.stop] > best_metrics[args.stop]:
             logging.info("Saving best!")
-            env.save("seed")
             best_metrics = metrics
-
 
 if __name__ == "__main__":
     main()

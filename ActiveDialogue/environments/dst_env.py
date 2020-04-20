@@ -1,13 +1,13 @@
 """In-dialogue selective sampling for slot labeling tasks."""
 
-import torch
-import numpy as np
 import random
 import logging
-import pdb
+import torch
+import numpy as np
 
 
 class DSTEnv():
+    """Base class for DST online AL environments."""
 
     def __init__(self, load_dataset, model_cls, args):
         """Initialize environment and cache datasets."""
@@ -27,36 +27,35 @@ class DSTEnv():
         self._dataset = datasets["train"]
         self._test_dataset = datasets["dev"]
         self._support_ptrs = np.array([], dtype=np.int32)
-        self._ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
+        self._online_ptrs, self._seed_ptrs, num_turns = self._dataset.get_turn_ptrs(
             args.num_passes, args.seed_size, sample_mode=args.sample_mode)
         logging.info(
-            "First 10 dataset stream pointers: {}".format(self._ptrs[:10]))
-        self._num_turns = num_turns
-        self.pool_size = args.num_passes * (self._num_turns - args.seed_size)
-        assert self.pool_size == len(self._ptrs)
-        logging.info("Seed size: {}".format(len(self._seed_ptrs)))
-        logging.info("Pool size: {}".format(len(self._ptrs)))
+            "First 10 dataset stream pointers: %s", self._online_ptrs[:10])
+        self.pool_size = args.num_passes * (num_turns - args.seed_size)
+        assert self.pool_size == len(self._online_ptrs)
+        logging.info("Seed size: %d", len(self._seed_ptrs))
+        logging.info("Pool size: %d", len(self._online_ptrs))
 
         # Inject noise
         if args.noise_fn > 0 or args.noise_fp > 0:
             self._dataset.add_noise(args.noise_fn, args.noise_fp)
 
         # Load model
-        def load_model():
-            self._model = model_cls(args, self._ontology, vocab)
-            self._model.load_emb(Eword)
-            self._model = self._model.to(self._model.device)
-
-        load_model()
-        self._reset_model = load_model
+        self._model = model_cls(args, self._ontology, vocab)
+        self._model.load_emb(Eword)
+        self._model = self._model.to(self._model.device)
 
     def load(self, prefix):
         """Load seeded model for the current seed"""
-        success = self._model.load_id(prefix + str(self._args.seed))
+        success = self._model.load_id("%s %d" % (prefix, self._args.seed))
         if not success:
             return False
         self._model = self._model.to(self._model.device)
         return True
+
+    def save(self, prefix):
+        """Save model"""
+        self._model.save({}, identifier="%s %d" % (prefix, self._args.seed))
 
     def leak_labels(self):
         """Leak ground-truth labels for current stream items"""
@@ -94,17 +93,18 @@ class DSTEnv():
         return obs, all_preds
 
     def metrics(self, run_eval=False):
+        """Return metrics for current model"""
         metrics = {
             "Stream progress":
                 self._current_idx / self.pool_size,
-            "Exhausted label budget":
+            "Exhausted labels proportion":
                 self._used_labels / self._args.label_budget,
             "Exhausted labels":
                 self._used_labels,
         }
 
         metrics.update({
-            "Example label proportion":
+            "Labeled / total":
                 len(self._support_ptrs) /
                 (self.pool_size + self._args.seed_size)
         })
@@ -121,13 +121,24 @@ class DSTEnv():
     @property
     def current_ptrs(self):
         """Expand current_idx into an array of currently occupied idxs"""
-        return self._ptrs[np.arange(
+        return self._online_ptrs[np.arange(
             self._current_idx,
             min(self._current_idx + self._args.al_batch, self.pool_size))]
 
     @property
     def can_label(self):
+        """Can the environment label more points?"""
         return self._args.label_budget > self._used_labels
+
+    def label_all(self):
+        """Fully label all available ptrs"""
+        # Add new label ptrs to support ptrs
+        self._support_ptrs = np.concatenate(
+            [self._support_ptrs,
+             self._online_ptrs[self._current_idx:self._current_idx
+                               + self._args.label_budget]])
+        assert len(np.unique(self._support_ptrs)) == len(self._support_ptrs)
+        self._used_labels += self._args.label_budget
 
     def label(self, label):
         """Fully label ptrs according to list of idxs"""
@@ -155,99 +166,30 @@ class DSTEnv():
 
         return len(label)
 
-    def seed_fit(self, epochs=None, prefix="", logger=None):
-        # Initialize optimizer and trackers
+    def fit(self):
+        """Fit on current support and seed datapoints."""
         if self._model.optimizer is None:
             self._model.set_optimizer()
 
-        iteration = 0
-        best = self.metrics(True)
-        if not epochs:
-            epochs = self._args.epochs
         self._model.train()
 
-        for epoch in range(epochs):
-            if epoch > 0:
-                logging.info('Starting fit epoch {}.'.format(epoch))
+        support_iterator = self._dataset.batch(
+            batch_size=self._args.batch_size,
+            ptrs=np.concatenate([self._support_ptrs, self._seed_ptrs]),
+            shuffle=True)
+        logging.info("Fitting on %d datapoints.",
+                     len(self._support_ptrs) + len(self._seed_ptrs))
 
-                # Batch from seed, looping if compound
-                seed_iterator = self._dataset.batch(
-                    batch_size=self._args.seed_batch_size,
-                    ptrs=self._seed_ptrs,
-                    shuffle=True,
-                    loop=False)
-
-                for batch, batch_labels in seed_iterator:
-                    self._model.zero_grad()
-                    loss, _ = self._model.forward(batch,
-                                                  batch_labels,
-                                                  training=True)
-                    loss.backward()
-                    self._model.optimizer.step()
-
-            # Report metrics, saving if stop metric is best
-            metrics = self.metrics(True)
-            if logger:
-                logger.log_current_epoch(epoch)
-                for k, v in metrics.items():
-                    logger.log_metric(k, v)
-            logging.info("Epoch metrics: {}".format(metrics))
-            if metrics[self._args.stop] > best[self._args.stop]:
-                logging.info("Saving best!")
-                self._model.save({}, identifier=prefix + str(self._args.seed))
-                best = metrics
-
-            self._model.train()
-        return best
-
-    def fit(self, epochs=None, prefix="", reset_model=False):
-        # Reset model if necessary
-        if reset_model:
-            self._reset_model()
-            self.load('seed')
-            self._model.save({}, identifier=prefix + str(self._args.seed))
-
-        # Initialize optimizer and trackers
-        if self._model.optimizer is None:
-            self._model.set_optimizer()
-
-        iteration = 0
-        best = self.metrics(True)
-        if not epochs:
-            epochs = self._args.epochs
-        self._model.train()
-
-        for epoch in range(epochs):
-            logging.info('Starting fit epoch {}.'.format(epoch))
-
-            support_iterator = self._dataset.batch(
-                batch_size=self._args.batch_size,
-                ptrs=np.concatenate([self._support_ptrs, self._seed_ptrs]),
-                shuffle=True)
-            logging.info("Fitting on {} datapoints.".format(
-                len(self._support_ptrs) + len(self._seed_ptrs)))
-
-            for batch, batch_labels in support_iterator:
-                self._model.zero_grad()
-                loss, _ = self._model.forward(batch,
-                                              batch_labels,
-                                              training=True)
-                loss.backward()
-                self._model.optimizer.step()
-
-            # Report metrics, saving if stop metric is best
-            metrics = self.metrics(True)
-            logging.info("Epoch metrics: {}".format(metrics))
-            if best is None or metrics[self._args.stop] > best[
-                    self._args.stop]:
-                logging.info("Saving best!")
-                self._model.save({}, identifier=prefix + str(self._args.seed))
-                best = metrics
-
-            self._model.train()
-        return best
+        for batch, batch_labels in support_iterator:
+            self._model.zero_grad()
+            loss, _ = self._model.forward(batch,
+                                          batch_labels,
+                                          training=True)
+            loss.backward()
+            self._model.optimizer.step()
 
     def eval(self):
+        """Evaluate underlying model and return metrics."""
         logging.info('Running dev evaluation')
         self._model.eval()
         return self._model.run_eval(self._test_dataset, self._args)
