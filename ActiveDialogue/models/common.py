@@ -41,20 +41,18 @@ def run_rnn(rnn, inputs, lens):
     return recovered
 
 
+# This is the error!
 def attend(seq, cond, lens):
     """
     attend over the sequences `seq` using the condition `cond`.
     """
-    scores = cond.unsqueeze(-2).expand_as(seq).mul(seq).sum(-1)
+    scores = cond.unsqueeze(1).expand_as(seq).mul(seq).sum(2)
     max_len = max(lens)
     for i, l in enumerate(lens):
         if l < max_len:
-            if len(scores.shape) == 3:
-                scores.data[:, i, l:] = -np.inf
-            else:
-                scores.data[i, l:] = -np.inf
-    scores = F.softmax(scores, dim=-2)
-    context = scores.unsqueeze(-1).expand_as(seq).mul(seq).sum(-2)
+            scores.data[i, l:] = -np.inf
+    scores = F.softmax(scores, dim=1)
+    context = scores.unsqueeze(2).expand_as(seq).mul(seq).sum(1)
     return context, scores
 
 
@@ -221,17 +219,17 @@ class Model(nn.Module):
     def forward(self, batch, labels=None, training=False):
         ys = self.infer(batch)
         if training:
-            keys = list(labels.keys())
-            flatlabels = torch.Tensor(
-                np.concatenate([labels[k] for k in keys],
-                               axis=1)).to(self.device)
-            flatys = torch.cat([ys[k] for k in keys], dim=1)
-            loss = F.binary_cross_entropy(flatys, flatlabels)
+            loss = 0
+            for k in labels.keys():
+                this_labels = torch.Tensor(labels[k]).to(self.device)
+                this_ys = ys[k] # torch.cat(ys[k], dim=1)
+                loss += F.binary_cross_entropy(this_ys, this_labels)
         else:
             loss = torch.Tensor([0]).to(self.device)
         return loss, {s: v.data.tolist() for s, v in ys.items()}
 
     def partial_forward(self, batch, labels=None, training=False, mask=None):
+        # TODO: fix 
         ys = self.infer(batch)
         if training:
             keys = list(labels.keys())
@@ -258,6 +256,7 @@ class Model(nn.Module):
                     training=False,
                     sl_reduction=False,
                     optimistic_weighting=False):
+        # TODO: fix 
         ys = self.infer(batch)
         feedback = torch.tensor(feedback).float().to(self.device)
 

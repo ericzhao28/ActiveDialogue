@@ -137,25 +137,20 @@ class GLAD(Model):
                                          slot=s)
 
             # compute the previous action score
+            q_utts = []
+            for c_val in C_vals:
+                q_utt, _ = attend(H_utt, c_val.unsqueeze(0).expand(len(batch), *c_val.size()), lens=utterance_len)
+                q_utts.append(q_utt)
+            y_utts = self.utt_scorer(torch.stack(q_utts, dim=1)).squeeze(2)
+
+            # compute the previous action score
             q_acts = []
             for i, C_act in enumerate(C_acts):
-                q_act, _ = attend(C_act.unsqueeze(0),
-                                  c_utt[i].unsqueeze(0),
-                                  lens=[C_act.size(0)])
+                q_act, _ = attend(C_act.unsqueeze(0), c_utt[i].unsqueeze(0), lens=[C_act.size(0)])
                 q_acts.append(q_act)
             y_acts = torch.cat(q_acts, dim=0).mm(C_vals.transpose(0, 1))
 
-            # compute the utterance score
-            C_acts = torch.cat(C_acts)
-            q_utts, _ = attend(
-                torch.repeat_interleave(H_utt.unsqueeze(0), C_vals.size(0),
-                                        0),
-                torch.repeat_interleave(C_vals.unsqueeze(1), len(batch), 1),
-                lens=utterance_len)
-            y_utts = self.utt_scorer(q_utts.transpose(0, 1)).squeeze(2)
-
             # combine the scores
-            ys[s] = torch.sigmoid(y_utts + self.score_weight * y_acts).to(
-                self.device)
+            ys[s] = F.sigmoid(y_utts + self.score_weight * y_acts)
 
         return ys
