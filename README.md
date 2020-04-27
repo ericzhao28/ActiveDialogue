@@ -18,3 +18,13 @@ The primary source-code can be found under `ActiveDialogue`. The modules are as 
 
 Datasets are mounted under `mnt`; if missing, please contact the Authors (the files may have been too large to upload).
 Unit test scripts are found in `tests`, although most require manual usage.
+
+## Running Baselines
+Train a seed model on the warmstart set using:
+```
+python3 -m ActiveDialogue.main.seed --lr 0.001 --epochs 100 --model glad --device 0 --seed_size 512 --batch_size 50 --nick finetune
+```
+To finetune:
+```
+python3 -m ActiveDialogue.main.finetune --lr 0.001 --epochs 100 --model glad --device 0 --seed_size 512 --batch_size 16 --label_budget 64 --nick finetune
+```
